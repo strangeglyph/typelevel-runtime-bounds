@@ -34,7 +34,8 @@ data DecTree (Compare : Set c) (Idx : Set i) (A : Set a) (B : Idx -> Set r) (Fol
     -- Note that the runtime bounds here assume that datatype arguments are evaluated by need only to avoid unfolding the
     --   entire tree instead of only the necessary branch for evaluation. Otherwise change the subtrees to \top -> Tree
     compare_,_yes>_,_no>_,_ : {h1 h2 : ℕ} -> (compLeft compRight : Compare) -> (valLeft : A) -> DecTree Compare Idx A B Fold h1 -> (valRight : A) -> DecTree Compare Idx A B Fold h2 -> DecTree Compare Idx A B Fold (1 + (h1 ⊔ h2))
-    Embed : {Idx' : Set i} -> {A' : Set a} -> {B' : Idx' -> Set r} -> (Fold' : {n : Idx'} -> A' -> B' n -> Σ Idx' B') -> {h1 h2 : ℕ} -> DecTree Compare Idx' A' B' Fold' h1 -> ({n : Idx'} -> B' n -> A) -> DecTree Compare Idx A B Fold h2 -> DecTree Compare Idx A B Fold (h1 + h2)
+    -- Embed a different calculation in this context
+    Embed : {Idx' : Set i} -> {A' : Set a} -> {B' : Idx' -> Set r} -> {Fold' : {n : Idx'} -> A' -> B' n -> Σ Idx' B'} -> {h1 h2 : ℕ} -> DecTree Compare Idx' A' B' Fold' h1 -> ({n : Idx'} -> B' n -> A) -> DecTree Compare Idx A B Fold h2 -> DecTree Compare Idx A B Fold (h1 + h2)
 
 
 
@@ -52,3 +53,6 @@ reduce {fold = fold} (
         no>  rVal , rTree) with x <= y
 ...                         | true = fold lVal (Σ.val (reduce lTree))
 ...                         | false = fold rVal (Σ.val (reduce rTree))
+reduce {fold = fold} (Embed embed transform recurse) = fold (transform (Σ.val (reduce embed))) (Σ.val (reduce recurse))
+
+
