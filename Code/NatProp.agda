@@ -3,6 +3,7 @@ module NatProp where
 open import Data.Nat
 open import Data.Nat.Properties
 open import Relation.Binary.PropositionalEquality
+open import Induction.WellFounded
 open ≡-Reasoning
 
 ⊔-idem-under-≡ : {x y : ℕ} -> (x ≡ y) -> x ⊔ y ≡ x
@@ -44,3 +45,10 @@ binom-identity (suc a) b = cong suc (begin
     a + a * suc a + b * b + (b + b + 2 * a * b)      ≡⟨ cong (a + a * suc a + b * b +_) (+-assoc b b (2 * a * b)) ⟩
     a + a * suc a + b * b + (b + (b + 2 * a * b))    ≡⟨ cong (a + a * suc a + b * b +_) (cong (b +_) (cong (_* b) (sym (+-suc a (a + 0))))) ⟩
     a + a * suc a + b * b + (2 * (1 + a) * b)        ∎)
+
+
+m≤m+n≡k : {m n k : ℕ} -> m + n ≡ k -> m ≤ k
+m≤m+n≡k {m} {n} {k} pf = subst (m ≤_) pf (m≤m+n m n)
+
+n≤m+n≡k : {m n k : ℕ} -> m + n ≡ k -> n ≤ k
+n≤m+n≡k {m} {n} {k} pf = subst (n ≤_) pf (m≤n+m n m)
