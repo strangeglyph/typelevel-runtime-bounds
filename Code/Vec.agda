@@ -106,15 +106,15 @@ quick-sort {l = l} xs = quick-sort-step xs (<-wellFounded l)
       quick-sort-step : {l : ℕ} -> Vec A l -> Acc _<_ l -> VecTree A (l * l)
       quick-sort-step [] _ = Leaf []
       quick-sort-step (x ∷ []) _ = delay (Leaf [ x ])
-      quick-sort-step {l = suc l} (x ∷ xs@(y ∷ _)) (Acc.acc rs) = delay' {d = 1} (split-pivot x xs >>= recurse)
+      quick-sort-step {A = A} {l = suc l} (x ∷ xs@(y ∷ _)) (Acc.acc rs) = delay' {d = 1} (split-pivot x xs >>= recurse)
         where
             recurse : {l' : ℕ × ℕ} -> Constrained (VecPair A) (pivot-constr l) l' -> VecTree A (l * suc l)
-            recurse {A = A} (constr {n₁ , n₂} (left ,, right) pf) =
+            recurse (constr {n₁ , n₂} (left ,, right) pf) =
                 subst (VecTree A) (cong (λ x -> x * suc x) pf) $
                 subst (VecTree A) (sym (*-suc (n₁ + n₂) (n₁ + n₂))) $
                 delay' {d = n₁ + n₂} $
                     subst (VecTree A) (sym (binom-identity n₁ n₂)) $
                     delay {d = 2 * n₁ * n₂ } $
                     fork (quick-sort-step left (rs n₁ (s≤s (m≤m+n≡k pf)))) , (quick-sort-step right (rs n₂ (s≤s (n≤m+n≡k pf))))
-                    combine-with λ l r -> σ (l ++ r)
+                    combine-with λ l r -> σ (l ++ x ∷ r)
 
