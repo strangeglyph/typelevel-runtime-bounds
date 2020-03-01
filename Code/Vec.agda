@@ -11,9 +11,9 @@ open import Function
 open import Induction.WellFounded using (Acc)
 open import Data.Nat.Induction using (<-wellFounded)
 
-open import Sigma
 open import DecTree
 open import NatProp
+open import Util
 
 private
     variable
@@ -22,9 +22,7 @@ private
 
 -- -- Vector-based specializations of DecTree -- --
 
-append : {n : ℕ} -> A -> Vec A n -> Σ ℕ (Vec A)
-append x xs = σ (x ∷ xs)
-
+{-}
 -- Decision tree which constructs a new vector from base elements
 VecTree : (A : Set a) -> (height : ℕ) -> Set (lsuc a)
 VecTree A height = DecTree A ℕ (Vec A) height
@@ -50,49 +48,65 @@ BoundedVecTree A Constr h = DecTree A ℕ (Constrained (Vec A) Constr) h
 
 BoundedVecPairTree : (A : Set a) -> (Constr : {n : ℕ × ℕ} -> VecPair A n -> Set) -> (height : ℕ) -> Set (lsuc a)
 BoundedVecPairTree A Constr h = DecTree A (ℕ × ℕ) (Constrained (VecPair A) Constr) h
+-}
 
+
+VecTree : Set a -> ℕ -> ℕ -> Set (lsuc a)
+VecTree A l h = DecTree A (Vec A l) h
 -- -- Algorithms -- --
 
 
 -- Insert a value into a sorted vector
-insert : {n : ℕ} -> A -> Vec A n -> VecTree A n
+insert : {n : ℕ} -> A -> Vec A n -> VecTree A (suc n) n
 insert k [] = Leaf [ k ]
 insert k (x ∷ xs) = compare k , x
                     yes> Leaf (k ∷ x ∷ xs)
-                    no>  (append x <$> insert k xs)
+                    no>  (x ∷_ <$> insert k xs)
 
 
 
 -- Merge two sorted vectors
-merge : {m n : ℕ} -> Vec A n -> Vec A m -> VecTree A (n + m)
+merge : {m n : ℕ} -> Vec A n -> Vec A m -> VecTree A (n + m) (n + m)
 merge [] ys = delay (Leaf ys)
-merge (x ∷ xs) [] = delay (Leaf (x ∷ xs))
-merge {A = A} (x ∷ xs) (y ∷ ys) = subst (VecTree A) (cong suc ⊔-idem-suc-xy) (
-                           compare x , y
-                           yes> (append x <$> merge xs (y ∷ ys))
-                           no>  (append y <$> merge (x ∷ xs) ys))
+merge {A = A} {n = suc n} (x ∷ xs) [] = delay (Leaf (x ∷ (subst (Vec A) (sym $ +-identityʳ n) xs)))
+merge {A = A} {m = suc m'} {n = suc n'} (x ∷ xs) (y ∷ ys) = subst (VecTree A (n + m)) (cong suc ⊔-idem-suc-xy) (
+                           if[ Vec A ] x ≤? y
+                           then (x ∷_ <$> merge xs (y ∷ ys))
+                           else (y ∷_ <$> merge (x ∷ xs) ys) by (cong suc $ sym $ +-suc n' m'))
+   where
+     m : ℕ
+     m = suc m'
+     n : ℕ
+     n = suc n'
 
 
 
 
-pivot-constr : ℕ -> {n : ℕ × ℕ} -> VecPair A n -> Set
-pivot-constr l {n = l₁ , l₂} _ = l₁ + l₂ ≡ l
+pivot-constr : ℕ -> {l₁ l₂ : ℕ} -> Vec A l₁ × Vec A l₂ -> Set
+pivot-constr l {l₁} {l₂} _ = l₁ + l₂ ≡ l
+
+record SplitVec (A : Set a) (l : ℕ) : Set a where
+    constructor _,_by_
+    field
+        {l₁ l₂} : ℕ
+        left : Vec A l₁
+        right : Vec A l₂
+        proof : l₁ + l₂ ≡ l
 
 
 PivotTree : (A : Set a) -> (l h : ℕ) -> Set (lsuc a)
-PivotTree A l h = BoundedVecPairTree A (pivot-constr l) h
+PivotTree A l h = DecTree A (SplitVec A l) h
 
+pivot-append-l : {l : ℕ} -> A -> SplitVec A l -> SplitVec A (suc l)
+pivot-append-l x (left , right by pf) = (x ∷ left) , right by cong suc pf
 
-pivot-append-l : {l : ℕ} -> A -> {n : ℕ × ℕ} -> Constrained (VecPair A) (pivot-constr l) n -> Σ (ℕ × ℕ) (Constrained (VecPair A) (λ {(l₁ , l₂)} _ -> l₁ + l₂ ≡ (suc l)))
-pivot-append-l x (constr vecs pf) = σ (constr (append-l x vecs) (cong suc pf))
-
-pivot-append-r : {l : ℕ} -> {n : ℕ × ℕ} -> A -> Constrained (VecPair A) (pivot-constr l) n -> Σ (ℕ × ℕ) (Constrained (VecPair A) (pivot-constr (suc l)))
-pivot-append-r {n = l₁ , l₂} x (constr vecs pf) = σ (constr (append-r x vecs) (trans (+-suc l₁ l₂) (cong suc pf)))
+pivot-append-r : {l : ℕ} -> A -> SplitVec A l -> SplitVec A (suc l)
+pivot-append-r x (left , right by pf) = left , x ∷ right by trans (+-suc (len left) (len right)) (cong suc pf)
 
 
 -- Split a vector into values smaller and larger than a pivot element
 split-pivot : {l : ℕ}-> A -> Vec A l -> PivotTree A l l
-split-pivot _ [] = Leaf (constr ([] ,, []) refl)
+split-pivot _ [] = Leaf $ [] , [] by refl
 split-pivot {A = A} {l = suc l'} k (x ∷ xs) =  subst (PivotTree A (suc l')) (⊔-idem (suc l')) (
                              compare x , k
                              yes> (pivot-append-l x <$> split-pivot k xs)
@@ -100,21 +114,40 @@ split-pivot {A = A} {l = suc l'} k (x ∷ xs) =  subst (PivotTree A (suc l')) (�
 
 
 -- Sort a vector using merge sort
-quick-sort : {l : ℕ} -> Vec A l -> VecTree A (l * l)
+quick-sort : {l : ℕ} -> Vec A l -> VecTree A l (l * l)
 quick-sort {l = l} xs = quick-sort-step xs (<-wellFounded l)
     where
-      quick-sort-step : {l : ℕ} -> Vec A l -> Acc _<_ l -> VecTree A (l * l)
+      quick-sort-step : {l : ℕ} -> Vec A l -> Acc _<_ l -> VecTree A l (l * l)
       quick-sort-step [] _ = Leaf []
       quick-sort-step (x ∷ []) _ = delay (Leaf [ x ])
       quick-sort-step {A = A} {l = suc l} (x ∷ xs@(y ∷ _)) (Acc.acc rs) = delay' {d = 1} (split-pivot x xs >>= recurse)
         where
-            recurse : {l' : ℕ × ℕ} -> Constrained (VecPair A) (pivot-constr l) l' -> VecTree A (l * suc l)
-            recurse (constr {n₁ , n₂} (left ,, right) pf) =
-                subst (VecTree A) (cong (λ x -> x * suc x) pf) $
-                subst (VecTree A) (sym (*-suc (n₁ + n₂) (n₁ + n₂))) $
-                delay' {d = n₁ + n₂} $
-                    subst (VecTree A) (sym (binom-identity n₁ n₂)) $
-                    delay {d = 2 * n₁ * n₂ } $
-                    fork (quick-sort-step left (rs n₁ (s≤s (m≤m+n≡k pf)))) , (quick-sort-step right (rs n₂ (s≤s (n≤m+n≡k pf))))
-                    combine-with λ l r -> σ (l ++ x ∷ r)
+            recurse : SplitVec A l -> VecTree A (suc l) (l * suc l)
+            recurse split@(left , right by pf) =
+                subst (VecTree A $ suc l) (cong (λ x -> x * suc x) pf) $
+                subst (VecTree A $ suc l) (sym (*-suc (l₁ + l₂) (l₁ + l₂))) $
+                delay' {d = l₁ + l₂} $
+                    subst (VecTree A $ suc l) (sym (binom-identity l₁ l₂)) $
+                    delay {d = 2 * l₁ * l₂ } $
+                            quick-sort-step left (rs l₁ (s≤s (m≤m+n≡k pf)))
+                        >>= λ (l : Vec A l₁) -> quick-sort-step right (rs l₂ (s≤s (n≤m+n≡k pf)))
+                        <&> λ (r : Vec A l₂) -> subst (Vec A) (trans (+-suc l₁ l₂) (cong suc pf)) $ l ++ x ∷ r
+                where
+                    l₁ : ℕ
+                    l₁ = SplitVec.l₁ split
+                    l₂ : ℕ
+                    l₂ = SplitVec.l₂ split
 
+
+{-}
+merge-sort : {l : ℕ} -> Vec A l -> VecTree A {!!}
+merge-sort [] = Leaf []
+merge-sort (x ∷ []) = delay $ Leaf [ x ]
+merge-sort {l = l} xs@(_ ∷ _ ∷ _) = {!recurse !}
+     where
+         recurse : Vec A ⌈ l /2⌉ -> Vec A ⌊ l /2⌋ -> VecTree A {!!}
+         recurse left right =
+                           merge-sort left >>=
+                   λ lr -> merge-sort right >>=
+                   λ rr -> {! merge lr rr !}
+-}

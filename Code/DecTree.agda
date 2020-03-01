@@ -7,19 +7,16 @@ open import Category.Functor
 open import Relation.Binary.PropositionalEquality
 open import Data.Nat.Properties
 
-open import Sigma
 open import Leq
 
 private
     variable
-        c i a r : Level
-        Compare : Set c
-        Idx : Set i
-        Result : Idx -> Set r
+        a b : Level
+        Compare : Set a
+        Result : Set b
 
 
 infix 5 compare_,_yes>_no>_
-infix 5 fork_,_combine-with_
 infix 1 _<$>_
 infix 1 _>>=_
 
@@ -29,53 +26,54 @@ infix 1 _>>=_
 -- * The result type (-> B) indexed by
 -- * The index type (-> Idx)
 -- The tree is indexed by its height which allows reasoning about algorithmic runtime
-data DecTree (Compare : Set c) (Idx : Set i) (B : Idx -> Set r) : (height : ℕ) -> Set (Level.suc (c Level.⊔ i Level.⊔ r)) where
+data DecTree (Compare : Set a) (B : Set b) : (height : ℕ) -> Set (Level.suc (a Level.⊔ b)) where
     -- Leaf of the decision tree, forming the base element of the fold
-    Leaf : {n : Idx} -> B n -> DecTree Compare Idx B 0
+    Leaf : B -> DecTree Compare B 0
     -- Insert an arbitrary delay into the computation. This is okay since the height of the tree is only an upper bound
-    delay : {h d : ℕ} -> DecTree Compare Idx B h -> DecTree Compare Idx B (h + d)
+    delay : {h d : ℕ} -> DecTree Compare B h -> DecTree Compare B (h + d)
     -- Decision node - compare two values, then evaluate one of two trees
     -- Note that the runtime bounds here assume that datatype arguments are evaluated by need only to avoid unfolding the
     --   entire tree instead of only the necessary branch for evaluation. Otherwise change the subtrees to \top -> Tree
-    compare_,_yes>_no>_ : {h1 h2 : ℕ} -> (compLeft compRight : Compare) -> DecTree Compare Idx B h1 -> DecTree Compare Idx B h2 -> DecTree Compare Idx B (1 + (h1 ⊔ h2))
+    compare_,_yes>_no>_ : {h1 h2 : ℕ} -> (compLeft compRight : Compare) -> DecTree Compare B h1 -> DecTree Compare B h2 -> DecTree Compare B (1 + (h1 ⊔ h2))
     -- Functor transform of a decision tree
-    _<$>_ : {Idx' : Set i} -> {B' : Idx' -> Set r} -> {h1 : ℕ} -> ({n : Idx'} -> B' n -> Σ Idx B) -> DecTree Compare Idx' B' h1 -> DecTree Compare Idx B h1
+    _<$>_ : {B' : Set b} -> {h1 : ℕ} -> (B' -> B) -> DecTree Compare B' h1 -> DecTree Compare B h1
     -- Monad transform of a decision tree
-    _>>=_ : {Idx' : Set i} -> {B' : Idx' -> Set r} -> {h1 h2 : ℕ} -> DecTree Compare Idx' B' h1 -> ({n : Idx'} -> B' n -> DecTree Compare Idx B h2) -> DecTree Compare Idx B (h1 + h2)
+    _>>=_ : {B' : Set b} -> {h1 h2 : ℕ} -> DecTree Compare B' h1 -> (B' -> DecTree Compare B h2) -> DecTree Compare B (h1 + h2)
 
 
-_<&>_ :  {Compare : Set c} -> {Idx Idx' : Set i} -> {B : Idx -> Set r} -> {B' : Idx' -> Set r} -> {h1 : ℕ}
-      -> DecTree Compare Idx' B' h1
-      -> ({n : Idx'} -> B' n -> Σ Idx B)
-      -> DecTree Compare Idx B h1
+_<&>_ :  {Compare : Set a} -> {B B' : Set b} -> {h1 : ℕ}
+      -> DecTree Compare B' h1
+      -> (B' -> B)
+      -> DecTree Compare B h1
 t <&> f = f <$> t
 
-fork_,_combine-with_ : {h1 h2 : ℕ} -> DecTree Compare Idx Result h1 -> DecTree Compare Idx Result h2 -> ({n1 n2 : Idx} -> Result n1 -> Result n2 -> Σ Idx Result) -> DecTree Compare Idx Result (h1 + h2)
-fork left , right combine-with f = left >>= λ lr -> right <&> λ { rr -> f lr rr }
 
-delay' : {h d : ℕ} -> DecTree Compare Idx Result h -> DecTree Compare Idx Result (d + h)
-delay' {Compare = Compare} {Idx = Idx} {Result = Result} {h = h} {d = d} tree =
-       subst (DecTree Compare Idx Result) (+-comm h d) (delay tree)
+delay' : {h d : ℕ} -> DecTree Compare Result h -> DecTree Compare Result (d + h)
+delay' {Compare = Compare} {Result = Result} {h = h} {d = d} tree =
+       subst (DecTree Compare Result) (+-comm h d) (delay tree)
+
+
+if[_]_≤?_then_else_by_ : ∀ {l} {Idx : Set l} -> {i₁ i₂ : Idx} -> (Result : Idx -> Set b) -> {h₁ h₂ : ℕ} -> Compare -> Compare -> DecTree Compare (Result i₁) h₁ -> DecTree Compare (Result i₂) h₂ -> i₂ ≡ i₁ -> DecTree Compare (Result i₁) (1 + (h₁ ⊔ h₂))
+if[_]_≤?_then_else_by_ {Compare = C} R {h₂ = h} a b left right proof =
+                    compare a , b
+                    yes> left
+                    no>  subst (λ i -> DecTree C (R i) h) proof right
 
 -- Give a decision tree a concrete comparision function and evaluate it
 reduce :  {h : ℕ}
        -> {{_ : Leq Compare}}
-       -> DecTree Compare Idx Result h
-       -> Σ Idx Result
-reduce (Leaf x) = σ x
+       -> DecTree Compare Result h
+       -> Result
+reduce (Leaf x) = x
 reduce (delay x) = reduce x
 reduce (compare x , y
         yes> left
         no>  right) with x <= y
 ...                 | true = reduce left
 ...                 | false = reduce right
-reduce (transform <$> tree) = transform (Σ.val (reduce tree))
-reduce (tree >>= transform) = reduce (transform (Σ.val (reduce tree)))
+reduce (transform <$> tree) = transform (reduce tree)
+reduce (tree >>= transform) = reduce (transform (reduce tree))
 
-{-
-data Constrained {Idx : Set i} (Result : Idx -> Set r) (Constraint : {n : Idx} -> Result n -> Set r) : Idx -> Set (Level.suc (i Level.⊔ r)) where
-    constr : {n : Idx} -> (value : Result n) -> Constraint value -> Constrained Result Constraint n
--}
 
-data Constrained {Idx : Set i} (Result : Idx -> Set r) (Constraint : {n : Idx} -> Result n -> Set) : Idx -> Set (i Level.⊔ r) where
-    constr : {n : Idx} -> (value : Result n) -> Constraint value -> Constrained Result Constraint n
+data Constrained (Result : Set b) (Constraint : Result -> Set) : Set b where
+    constr : (value : Result) -> Constraint value -> Constrained Result Constraint
