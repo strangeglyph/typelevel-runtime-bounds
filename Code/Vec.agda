@@ -22,37 +22,9 @@ private
 
 -- -- Vector-based specializations of DecTree -- --
 
-{-}
--- Decision tree which constructs a new vector from base elements
-VecTree : (A : Set a) -> (height : ℕ) -> Set (lsuc a)
-VecTree A height = DecTree A ℕ (Vec A) height
-
-
-
-data VecPair (A : Set a) : (ℕ × ℕ) -> Set a where
-    _,,_ : {l₁ l₂ : ℕ} -> Vec A l₁ -> Vec A l₂ -> VecPair A (l₁ , l₂)
-
-append-l : {(l₁ , l₂) : ℕ × ℕ} -> A -> VecPair A (l₁ , l₂) -> VecPair A (1 + l₁ , l₂)
-append-l x (xs ,, ys) = (x ∷ xs) ,, ys
-
-append-r : {(l₁ , l₂) : ℕ × ℕ} -> A -> VecPair A (l₁ , l₂) -> VecPair A (l₁ , 1 + l₂)
-append-r y (xs ,, ys) = xs ,, (y ∷ ys)
-
--- Decision tree which constructs a pair of vectors.
-VecPairTree : (A : Set a) -> (height : ℕ) -> Set (lsuc a)
-VecPairTree A height = DecTree A (ℕ × ℕ) (VecPair A) height
-
-
-BoundedVecTree : (A : Set a) -> (Constr : {n : ℕ} -> Vec A n -> Set) -> (height : ℕ) -> Set (lsuc a)
-BoundedVecTree A Constr h = DecTree A ℕ (Constrained (Vec A) Constr) h
-
-BoundedVecPairTree : (A : Set a) -> (Constr : {n : ℕ × ℕ} -> VecPair A n -> Set) -> (height : ℕ) -> Set (lsuc a)
-BoundedVecPairTree A Constr h = DecTree A (ℕ × ℕ) (Constrained (VecPair A) Constr) h
--}
-
-
 VecTree : Set a -> ℕ -> ℕ -> Set (lsuc a)
 VecTree A l h = DecTree A (Vec A l) h
+
 -- -- Algorithms -- --
 
 
@@ -139,6 +111,20 @@ quick-sort {l = l} xs = quick-sort-step xs (<-wellFounded l)
                     l₂ = SplitVec.l₂ split
 
 
+
+take-min : {n : ℕ} -> A -> Vec A n -> DecTree A (A × Vec A n) n
+take-min x [] = Leaf $ x , []
+take-min x (y ∷ ys) = if' x ≤? y
+                 then (take-min x ys <&> λ (e , rs) -> e , y ∷ rs)
+                 else (take-min y ys <&> λ (e , rs) -> e , x ∷ rs)
+
+
+selection-sort : {n : ℕ} -> Vec A n -> VecTree A n (n * n)
+selection-sort [] = Leaf []
+selection-sort (x ∷ xs) = delay' {d = 1} $ take-min x xs >>= λ (e , rs) -> e ∷_ <$> recurse rs
+  where
+    recurse : {n : ℕ} -> Vec A n -> VecTree A n (n * suc n)
+    recurse {A = A} {n = n} xs = subst (VecTree A n) (sym $ *-suc n n) $ {!delay' {d = n} $ selection-sort xs!}
 {-}
 merge-sort : {l : ℕ} -> Vec A l -> VecTree A {!!}
 merge-sort [] = Leaf []
