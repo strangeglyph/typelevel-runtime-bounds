@@ -2,7 +2,7 @@ module DecTree where
 
 open import Level using (Level)
 open import Data.Nat
-open import Data.Bool
+open import Data.Bool hiding (_≤_)
 open import Category.Functor
 open import Relation.Binary.PropositionalEquality
 open import Data.Nat.Properties
@@ -31,7 +31,7 @@ data DecTree (Compare : Set a) (B : Set b) : (height : ℕ) -> Set (Level.suc (a
     -- Leaf of the decision tree, forming the base element of the fold
     Leaf : B -> DecTree Compare B 0
     -- Insert an arbitrary delay into the computation. This is okay since the height of the tree is only an upper bound
-    delay : {h d : ℕ} -> DecTree Compare B h -> DecTree Compare B (h + d)
+    delay : {h : ℕ} -> (d : ℕ) -> DecTree Compare B h -> DecTree Compare B (h + d)
     -- Decision node - compare two values, then evaluate one of two trees
     -- Note that the runtime bounds here assume that datatype arguments are evaluated by need only to avoid unfolding the
     --   entire tree instead of only the necessary branch for evaluation. Otherwise change the subtrees to \top -> Tree
@@ -42,19 +42,36 @@ data DecTree (Compare : Set a) (B : Set b) : (height : ℕ) -> Set (Level.suc (a
     _>>=_ : {B' : Set b} -> {h1 h2 : ℕ} -> DecTree Compare B' h1 -> (B' -> DecTree Compare B h2) -> DecTree Compare B (h1 + h2)
 
 
-_<$>_ : {R R' : Set b} -> {h : ℕ} -> (R' -> R) -> DecTree Compare R' h -> DecTree Compare R h
-_<$>_ {Compare = C} {R = R} {h = h} f t = subst (DecTree C R) (+-identityʳ h) $ t >>= λ r -> Leaf $ f r
+height-≡ : {h h' : ℕ} -> h ≡ h' -> DecTree Compare Result h -> DecTree Compare Result h'
+height-≡ {Compare = Compare} {Result = Result} pf = subst (DecTree Compare Result) pf
 
-_<&>_ :  {Compare : Set a} -> {B B' : Set b} -> {h1 : ℕ}
-      -> DecTree Compare B' h1
-      -> (B' -> B)
-      -> DecTree Compare B h1
+
+
+
+
+_<$>_ : {R R' : Set b} -> {h : ℕ} -> (R' -> R) -> DecTree Compare R' h -> DecTree Compare R h
+_<$>_ {h = h} f t = height-≡ (+-identityʳ h) $ t >>= λ r -> Leaf $ f r
+
+_<&>_ : {R R' : Set b} -> {h : ℕ} -> DecTree Compare R' h -> (R' -> R) -> DecTree Compare R h
 t <&> f = f <$> t
 
 
-delay' : {h d : ℕ} -> DecTree Compare Result h -> DecTree Compare Result (d + h)
-delay' {Compare = Compare} {Result = Result} {h = h} {d = d} tree =
-       subst (DecTree Compare Result) (+-comm h d) (delay tree)
+record Diff (x y : ℕ) : Set where
+    constructor Diff_by_
+    field
+        k : ℕ
+        pf : (x + k) ≡ y
+
+
+delay' : {h : ℕ} -> (d : ℕ) -> DecTree Compare Result h -> DecTree Compare Result (d + h)
+delay' {h = h} d tree = height-≡ (+-comm h d) $ delay d tree
+
+
+delay-≤ : {d d' : ℕ} -> d ≤ d' -> DecTree Compare Result d -> DecTree Compare Result d'
+delay-≤ d≤d' tree = case diff d≤d' of λ (Diff n by pf) -> height-≡ pf $ delay n tree
+    where diff : ∀ {x y} -> x ≤ y -> Diff x y
+          diff (z≤n {n}) = Diff n by refl
+          diff (s≤s m≤n) = case (diff m≤n) of λ (Diff n by pf) -> Diff n by cong suc pf
 
 
 if[_]_≤?_then_else_by_ : ∀ {l} {Idx : Set l} -> {i₁ i₂ : Idx} -> (Result : Idx -> Set b) -> {h₁ h₂ : ℕ} -> Compare -> Compare -> DecTree Compare (Result i₁) h₁ -> DecTree Compare (Result i₂) h₂ -> i₂ ≡ i₁ -> DecTree Compare (Result i₁) (1 + (h₁ ⊔ h₂))
@@ -65,7 +82,7 @@ if[_]_≤?_then_else_by_ {Compare = C} R {h₂ = h} a b left right proof =
 
 
 if'_≤?_then_else_ : {h : ℕ} -> (x y : Compare) -> (left right : DecTree Compare Result h) -> DecTree Compare Result (suc h)
-if'_≤?_then_else_ {Compare = C} {Result = R} {h = h} x y left right = subst (DecTree C R) (cong suc $ ⊔-idem h) (compare x , y yes> left no> right)
+if'_≤?_then_else_ {h = h} x y left right = height-≡ (cong suc $ ⊔-idem h) $ compare x , y yes> left no> right
 
 -- Give a decision tree a concrete comparision function and evaluate it
 reduce :  {h : ℕ}
@@ -73,7 +90,7 @@ reduce :  {h : ℕ}
        -> DecTree Compare Result h
        -> Result
 reduce (Leaf x) = x
-reduce (delay x) = reduce x
+reduce (delay _ x) = reduce x
 reduce (compare x , y
         yes> left
         no>  right) with x <= y

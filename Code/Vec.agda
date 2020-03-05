@@ -4,6 +4,7 @@ open import Level using (Level ; Lift ; lift) renaming (suc to lsuc)
 open import Data.Vec hiding (insert; _>>=_)
 open import Data.Nat
 open import Data.Nat.Properties
+open import Data.Nat.Induction
 open import Data.Product using (_,_; _×_)
 open import Data.Sum.Base
 open import Relation.Binary.PropositionalEquality hiding ([_])
@@ -14,6 +15,7 @@ open import Data.Nat.Induction using (<-wellFounded)
 open import DecTree
 open import NatProp
 open import Util
+open import Nat.Log
 
 private
     variable
@@ -39,8 +41,8 @@ insert k (x ∷ xs) = compare k , x
 
 -- Merge two sorted vectors
 merge : {m n : ℕ} -> Vec A n -> Vec A m -> VecTree A (n + m) (n + m)
-merge [] ys = delay (Leaf ys)
-merge {A = A} {n = suc n} (x ∷ xs) [] = delay (Leaf (x ∷ (subst (Vec A) (sym $ +-identityʳ n) xs)))
+merge [] ys = delay (len ys)(Leaf ys)
+merge {A = A} {n = suc n} (x ∷ xs) [] = delay' (suc n) (Leaf (x ∷ (subst (Vec A) (sym $ +-identityʳ n) xs)))
 merge {A = A} {m = suc m'} {n = suc n'} (x ∷ xs) (y ∷ ys) = subst (VecTree A (n + m)) (cong suc ⊔-idem-suc-xy) (
                            if[ Vec A ] x ≤? y
                            then (x ∷_ <$> merge xs (y ∷ ys))
@@ -91,16 +93,16 @@ quick-sort {l = l} xs = quick-sort-step xs (<-wellFounded l)
     where
       quick-sort-step : {l : ℕ} -> Vec A l -> Acc _<_ l -> VecTree A l (l * l)
       quick-sort-step [] _ = Leaf []
-      quick-sort-step (x ∷ []) _ = delay (Leaf [ x ])
-      quick-sort-step {A = A} {l = suc l} (x ∷ xs@(y ∷ _)) (Acc.acc rs) = delay' {d = 1} (split-pivot x xs >>= recurse)
+      quick-sort-step (x ∷ []) _ = delay 1 (Leaf [ x ])
+      quick-sort-step {A = A} {l = suc l} (x ∷ xs@(y ∷ _)) (Acc.acc rs) = delay' 1 (split-pivot x xs >>= recurse)
         where
             recurse : SplitVec A l -> VecTree A (suc l) (l * suc l)
             recurse split@(left , right by pf) =
-                subst (VecTree A $ suc l) (cong (λ x -> x * suc x) pf) $
-                subst (VecTree A $ suc l) (sym (*-suc (l₁ + l₂) (l₁ + l₂))) $
-                delay' {d = l₁ + l₂} $
-                    subst (VecTree A $ suc l) (sym (binom-identity l₁ l₂)) $
-                    delay {d = 2 * l₁ * l₂ } $
+                height-≡ (cong (λ x -> x * suc x) pf) $
+                height-≡ (sym (*-suc (l₁ + l₂) (l₁ + l₂))) $
+                delay' (l₁ + l₂) $
+                    height-≡ (sym (binom-identity l₁ l₂)) $
+                    delay (2 * l₁ * l₂) $
                             quick-sort-step left (rs l₁ (s≤s (m≤m+n≡k pf)))
                         >>= λ (l : Vec A l₁) -> quick-sort-step right (rs l₂ (s≤s (n≤m+n≡k pf)))
                         <&> λ (r : Vec A l₂) -> subst (Vec A) (trans (+-suc l₁ l₂) (cong suc pf)) $ l ++ x ∷ r
@@ -121,19 +123,27 @@ take-min x (y ∷ ys) = if' x ≤? y
 
 selection-sort : {n : ℕ} -> Vec A n -> VecTree A n (n * n)
 selection-sort [] = Leaf []
-selection-sort (x ∷ xs) = delay' {d = 1} $ take-min x xs >>= λ (e , rs) -> e ∷_ <$> recurse rs
+selection-sort (x ∷ xs) = delay' 1 $ take-min x xs >>= λ (e , rs) -> e ∷_ <$> recurse rs
   where
     recurse : {n : ℕ} -> Vec A n -> VecTree A n (n * suc n)
-    recurse {A = A} {n = n} xs = subst (VecTree A n) (sym $ *-suc n n) $ {!delay' {d = n} $ selection-sort xs!}
-{-}
-merge-sort : {l : ℕ} -> Vec A l -> VecTree A {!!}
-merge-sort [] = Leaf []
-merge-sort (x ∷ []) = delay $ Leaf [ x ]
-merge-sort {l = l} xs@(_ ∷ _ ∷ _) = {!recurse !}
+    recurse {A = A} {n = n} xs = subst (VecTree A n) (sym $ *-suc n n) $ delay' n $ selection-sort xs
+
+
+
+
+merge-sort-step : {l : ℕ} -> Vec A l -> Acc _<_ l -> VecTree A l (l * ⌈log₂ l ⌉)
+merge-sort-step [] _ = Leaf []
+merge-sort-step (x ∷ []) _ = Leaf [ x ]
+merge-sort-step {A = A} {l = l} xs@(_ ∷ _ ∷ _) (Acc.acc more) = Data.Product.uncurry recurse $ split xs
      where
-         recurse : Vec A ⌈ l /2⌉ -> Vec A ⌊ l /2⌋ -> VecTree A {!!}
+         recurse : Vec A ⌈ l /2⌉ -> Vec A ⌊ l /2⌋ -> VecTree A l (l * ⌈log₂ l ⌉)
          recurse left right =
-                           merge-sort left >>=
-                   λ lr -> merge-sort right >>=
-                   λ rr -> {! merge lr rr !}
--}
+                   subst (λ x -> VecTree A x (l * ⌈log₂ l ⌉)) (⌈n/2⌉+⌊n/2⌋≡n l) $
+                   delay-≤ (log₂n/2-bound _) $
+                           merge-sort-step left (more ⌈ l /2⌉ (n>1⇒⌈n/2⌉<n _)) >>=
+                   λ lr -> merge-sort-step right (more ⌊ l /2⌋ (n>0⇒⌊n/2⌋<n _))>>=
+                   λ rr -> merge lr rr
+
+merge-sort : {l : ℕ} -> Vec A l -> VecTree A l (l * ⌈log₂ l ⌉)
+merge-sort {l = l} xs = merge-sort-step xs $ <-wellFounded l
+

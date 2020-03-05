@@ -4,6 +4,7 @@ open import Data.Nat
 open import Data.Nat.Properties
 open import Relation.Binary.PropositionalEquality
 open import Induction.WellFounded
+open import Function
 open ≡-Reasoning
 
 ⊔-idem-under-≡ : {x y : ℕ} -> (x ≡ y) -> x ⊔ y ≡ x
@@ -12,8 +13,25 @@ open ≡-Reasoning
 ⊔-idem-suc-xy : {x y : ℕ} -> (x + (1 + y)) ⊔ (1 + (x + y)) ≡ (x + (1 + y))
 ⊔-idem-suc-xy {x} {y} = ⊔-idem-under-≡ (+-suc x y)
 
-+-to-* : (a : ℕ) -> a + a ≡ 2 * a
-+-to-* a = cong (a +_) (sym (+-identityʳ a))
+⌈n/2⌉+⌊n/2⌋≡n : ∀ n -> ⌈ n /2⌉ + ⌊ n /2⌋ ≡ n
+⌈n/2⌉+⌊n/2⌋≡n zero = refl
+⌈n/2⌉+⌊n/2⌋≡n (suc n) = begin
+        ⌈ suc n /2⌉ + ⌊ suc n /2⌋      ≡⟨⟩
+        suc (⌊ n /2⌋ + ⌊ suc n /2⌋)    ≡⟨ cong suc (+-comm ⌊ n /2⌋ ⌊ suc n /2⌋) ⟩
+        suc (⌊ suc n /2⌋ + ⌊ n /2⌋)    ≡⟨⟩
+        suc (⌈ n /2⌉ + ⌊ n /2⌋)        ≡⟨ cong suc (⌈n/2⌉+⌊n/2⌋≡n n) ⟩
+        suc n                          ∎
+
+⌊n/2⌋+⌈n/2⌉≡n : ∀ n -> ⌊ n /2⌋ + ⌈ n /2⌉ ≡ n
+⌊n/2⌋+⌈n/2⌉≡n n = trans (+-comm ⌊ n /2⌋ ⌈ n /2⌉) $ ⌈n/2⌉+⌊n/2⌋≡n n
+
+n>0⇒⌊n/2⌋<n : ∀ n-1 -> let n = 1 + n-1 in ⌊ n /2⌋ < n
+n>0⇒⌊n/2⌋<n zero = s≤s z≤n
+n>0⇒⌊n/2⌋<n (suc zero) = s≤s (s≤s z≤n)
+n>0⇒⌊n/2⌋<n (suc (suc k)) = ≤-step $ s≤s $ n>0⇒⌊n/2⌋<n k
+
+n>1⇒⌈n/2⌉<n : ∀ n-2 -> let n = 2 + n-2 in ⌈ n /2⌉ < n
+n>1⇒⌈n/2⌉<n k = s≤s $ n>0⇒⌊n/2⌋<n $ k
 
 +-double-comm : (a b : ℕ) -> (a + b) + (a + b) ≡ (a + a) + (b + b)
 +-double-comm a b = begin
