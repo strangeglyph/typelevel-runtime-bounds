@@ -33,6 +33,14 @@ n>0⇒⌊n/2⌋<n (suc (suc k)) = ≤-step $ s≤s $ n>0⇒⌊n/2⌋<n k
 n>1⇒⌈n/2⌉<n : ∀ n-2 -> let n = 2 + n-2 in ⌈ n /2⌉ < n
 n>1⇒⌈n/2⌉<n k = s≤s $ n>0⇒⌊n/2⌋<n $ k
 
+a+1+b+c+d≡a+b+1+c+d : ∀ a b c d -> a + suc (b + c + d) ≡ a + b + suc (c + d)
+a+1+b+c+d≡a+b+1+c+d a b c d = begin
+    a + suc (b + c + d)     ≡⟨ cong (a +_) $ cong suc $ +-assoc b c d ⟩
+    a + suc (b + (c + d))   ≡⟨ cong (a +_) $ sym $ +-suc b (c + d) ⟩
+    a + (b + suc (c + d))   ≡⟨ sym $ +-assoc a b (suc (c + d)) ⟩
+    a + b + suc (c + d)     ∎
+
+
 +-double-comm : (a b : ℕ) -> (a + b) + (a + b) ≡ (a + a) + (b + b)
 +-double-comm a b = begin
     a +     b    + (a + b)  ≡⟨ +-assoc a b (a + b) ⟩

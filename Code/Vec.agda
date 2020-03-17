@@ -2,8 +2,8 @@ module Vec where
 
 open import Level using (Level ; Lift ; lift) renaming (suc to lsuc)
 open import Data.Vec hiding (insert; _>>=_)
-open import Data.Nat
-open import Data.Nat.Properties
+open import Data.Nat hiding (_≤?_)
+open import Data.Nat.Properties hiding (_≤?_)
 open import Data.Nat.Induction
 open import Data.Product using (_,_; _×_)
 open import Data.Sum.Base
@@ -32,17 +32,17 @@ VecTree A l h = DecTree A (Vec A l) h
 
 -- Insert a value into a sorted vector
 insert : {n : ℕ} -> A -> Vec A n -> VecTree A (suc n) n
-insert k [] = Leaf [ k ]
-insert k (x ∷ xs) = compare k , x
-                    yes> Leaf (k ∷ x ∷ xs)
-                    no>  (x ∷_ <$> insert k xs)
+insert k [] = return [ k ]
+insert k (x ∷ xs) = if k ≤? x
+                    then return (k ∷ x ∷ xs)
+                    else (x ∷_ <$> insert k xs)
 
 
 
 -- Merge two sorted vectors
 merge : {m n : ℕ} -> Vec A n -> Vec A m -> VecTree A (n + m) (n + m)
-merge [] ys = delay (len ys)(Leaf ys)
-merge {A = A} {n = suc n} (x ∷ xs) [] = delay' (suc n) (Leaf (x ∷ (subst (Vec A) (sym $ +-identityʳ n) xs)))
+merge [] ys = delay (len ys) (return ys)
+merge {A = A} {n = suc n} (x ∷ xs) [] = delay' (suc n) (return (x ∷ (subst (Vec A) (sym $ +-identityʳ n) xs)))
 merge {A = A} {m = suc m'} {n = suc n'} (x ∷ xs) (y ∷ ys) = subst (VecTree A (n + m)) (cong suc ⊔-idem-suc-xy) (
                            if[ Vec A ] x ≤? y
                            then (x ∷_ <$> merge xs (y ∷ ys))
@@ -80,11 +80,11 @@ pivot-append-r x (left , right by pf) = left , x ∷ right by trans (+-suc (len 
 
 -- Split a vector into values smaller and larger than a pivot element
 split-pivot : {l : ℕ}-> A -> Vec A l -> PivotTree A l l
-split-pivot _ [] = Leaf $ [] , [] by refl
+split-pivot _ [] = return $ [] , [] by refl
 split-pivot {A = A} {l = suc l'} k (x ∷ xs) =  subst (PivotTree A (suc l')) (⊔-idem (suc l')) (
-                             compare x , k
-                             yes> (pivot-append-l x <$> split-pivot k xs)
-                             no>  (pivot-append-r x <$> split-pivot k xs))
+                             if x ≤? k
+                             then (pivot-append-l x <$> split-pivot k xs)
+                             else (pivot-append-r x <$> split-pivot k xs))
 
 
 -- Sort a vector using merge sort
@@ -92,8 +92,8 @@ quick-sort : {l : ℕ} -> Vec A l -> VecTree A l (l * l)
 quick-sort {l = l} xs = quick-sort-step xs (<-wellFounded l)
     where
       quick-sort-step : {l : ℕ} -> Vec A l -> Acc _<_ l -> VecTree A l (l * l)
-      quick-sort-step [] _ = Leaf []
-      quick-sort-step (x ∷ []) _ = delay 1 (Leaf [ x ])
+      quick-sort-step [] _ = return []
+      quick-sort-step (x ∷ []) _ = delay 1 (return [ x ])
       quick-sort-step {A = A} {l = suc l} (x ∷ xs@(y ∷ _)) (Acc.acc rs) = delay' 1 (split-pivot x xs >>= recurse)
         where
             recurse : SplitVec A l -> VecTree A (suc l) (l * suc l)
@@ -115,14 +115,14 @@ quick-sort {l = l} xs = quick-sort-step xs (<-wellFounded l)
 
 
 take-min : {n : ℕ} -> A -> Vec A n -> DecTree A (A × Vec A n) n
-take-min x [] = Leaf $ x , []
+take-min x [] = return $ x , []
 take-min x (y ∷ ys) = if' x ≤? y
                  then (take-min x ys <&> λ (e , rs) -> e , y ∷ rs)
                  else (take-min y ys <&> λ (e , rs) -> e , x ∷ rs)
 
 
 selection-sort : {n : ℕ} -> Vec A n -> VecTree A n (n * n)
-selection-sort [] = Leaf []
+selection-sort [] = return []
 selection-sort (x ∷ xs) = delay' 1 $ take-min x xs >>= λ (e , rs) -> e ∷_ <$> recurse rs
   where
     recurse : {n : ℕ} -> Vec A n -> VecTree A n (n * suc n)
@@ -132,8 +132,8 @@ selection-sort (x ∷ xs) = delay' 1 $ take-min x xs >>= λ (e , rs) -> e ∷_ <
 
 
 merge-sort-step : {l : ℕ} -> Vec A l -> Acc _<_ l -> VecTree A l (l * ⌈log₂ l ⌉)
-merge-sort-step [] _ = Leaf []
-merge-sort-step (x ∷ []) _ = Leaf [ x ]
+merge-sort-step [] _ = return []
+merge-sort-step (x ∷ []) _ = return [ x ]
 merge-sort-step {A = A} {l = l} xs@(_ ∷ _ ∷ _) (Acc.acc more) = Data.Product.uncurry recurse $ split xs
      where
          recurse : Vec A ⌈ l /2⌉ -> Vec A ⌊ l /2⌋ -> VecTree A l (l * ⌈log₂ l ⌉)
