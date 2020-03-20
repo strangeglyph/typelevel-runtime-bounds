@@ -26,6 +26,26 @@ ord (suc x) (suc y) with ord x y
 2*m≡m+m : ∀ m -> 2 * m ≡ m + m
 2*m≡m+m m = cong (m +_) $ +-identityʳ m
 
++-double-comm : (a b : ℕ) -> (a + b) + (a + b) ≡ (a + a) + (b + b)
++-double-comm a b = begin
+        a +     b    + (a + b)  ≡⟨ +-assoc a b (a + b) ⟩
+        a + (   b    + (a + b)) ≡⟨ cong (a +_) (+-comm b (a + b)) ⟩
+        a + ((a + b) +    b   ) ≡⟨ cong (a +_) (+-assoc a b b) ⟩
+        a + (   a    + (b + b)) ≡⟨ sym (+-assoc a a (b + b)) ⟩
+        a +     a    + (b + b)  ∎
+    where
+        open ≡-Reasoning
+
+
+comm-⊔≤+ : ∀ m n -> suc (m + m) ⊔ (n + n) ≤ m + n + suc (m + n)
+comm-⊔≤+ m n = begin
+        suc (m + m) ⊔ (n + n)                  ≤⟨ m⊔n≤m+n (suc $ m + m) (n + n) ⟩
+        suc (m + m) + (n + n)                  ≡⟨⟩
+        suc (m + m + (n + n))                  ≡⟨ sym $ cong suc $ +-double-comm m n ⟩
+        suc (m + n + (m + n))                  ≡⟨ sym $ +-suc _ _ ⟩
+        m + n + suc (m + n)                    ∎
+    where
+       open ≤-Reasoning
 
 ⊔-+-switch : ∀ m n -> 1 + (m + m) ⊔ (n + n) ≤ m ⊔ n + suc (m ⊔ n)
 ⊔-+-switch m n = begin
@@ -94,15 +114,6 @@ a+1+b+c+d≡a+b+1+c+d a b c d = begin
     where
         open ≡-Reasoning
 
-+-double-comm : (a b : ℕ) -> (a + b) + (a + b) ≡ (a + a) + (b + b)
-+-double-comm a b = begin
-        a +     b    + (a + b)  ≡⟨ +-assoc a b (a + b) ⟩
-        a + (   b    + (a + b)) ≡⟨ cong (a +_) (+-comm b (a + b)) ⟩
-        a + ((a + b) +    b   ) ≡⟨ cong (a +_) (+-assoc a b b) ⟩
-        a + (   a    + (b + b)) ≡⟨ sym (+-assoc a a (b + b)) ⟩
-        a +     a    + (b + b)  ∎
-    where
-        open ≡-Reasoning
 
 binom-identity : (a b : ℕ) -> (a + b) * (a + b) ≡ (a * a) + (b * b) + (2 * a * b)
 binom-identity zero b = sym (+-identityʳ (b * b))

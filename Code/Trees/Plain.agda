@@ -2,6 +2,7 @@ module Trees.Plain where
 
 open import Data.Nat hiding (_≤?_) renaming (_≡ᵇ_ to _==_)
 open import Data.Nat.Properties hiding (_≤?_)
+open import Data.Bool using (Bool ; false ; true)
 open import Data.Product
 open import Data.Sum
 open import Level using (Level) renaming (suc to lsuc)
@@ -29,22 +30,14 @@ size {s = s} _ = s
 height : {s h : ℕ} -> Tree A s h -> ℕ
 height {h = h} _ = h
 
-TreeTree : Set a -> ℕ -> ℕ -> Set (lsuc a)
-TreeTree A s l = DecTree A (Σ ℕ $ Tree A s) l
-
-insert : {s h : ℕ} -> Tree A s h -> A -> TreeTree A (1 + s) s
-insert Leaf x = return $ -, Fork Leaf x Leaf
-insert {A = A} (Fork l x r) y =
-                    if' y ≤? x
-                    then (delay-≤ (m≤m+n _ _) $ insert l y <&> λ σ -> let l' = Σ.proj₂ σ in -, Fork l' x r)
-                    else (delay-≤ (m≤n+m _ _) $ insert r y <&> λ σ -> let r' = Σ.proj₂ σ in +-suc-t $ -, Fork l x r')
+tree-h≤s : ∀ {s h} -> Tree A s h -> h ≤ s
+tree-h≤s Leaf = z≤n
+tree-h≤s (Fork l x r) = s≤s $ begin
+        height l ⊔ height r ≤⟨ ⊔-mono-≤ (tree-h≤s l) (tree-h≤s r) ⟩
+        size l ⊔ size r     ≤⟨ m⊔n≤m+n (size l) (size r) ⟩
+        size l + size r     ∎
     where
-        s₁ s₂ : ℕ
-        s₁ = size l
-        s₂ = size r
-        +-suc-t : Σ ℕ (Tree A (1 + s₁ + (1 + s₂))) -> Σ ℕ (Tree A (2 + s₁ + s₂))
-        +-suc-t = subst (λ s -> Σ ℕ (Tree A s)) (cong suc $ +-suc s₁ s₂)
-
+        open ≤-Reasoning
 
 tree-⊔-max-< : {s h₁ h₂ : ℕ} -> Tree A s (suc (h₁ ⊔ h₂)) -> suc h₁ < h₂ -> Tree A s (suc (suc h₁ ⊔ h₂))
 tree-⊔-max-< t pf = subst (Tree _ _) (cong suc $ ⊔-max-< $ ≤⇒pred≤ pf) t
@@ -72,6 +65,37 @@ tree-⊔-max->ᵣ t pf = subst (Tree _ _) (⊔-max->ᵣ $ ≤-pred pf) t
 
 tree₂-⊔-max->ᵣ : ∀ {s₁ s₂ h₁ h₂} -> Tree A (suc (s₁ + s₂)) (suc (h₁ ⊔ h₂)) -> h₁ < suc h₂ -> Tree A (s₁ + suc s₂) (h₁ ⊔ suc h₂)
 tree₂-⊔-max->ᵣ t pf = subst2 (Tree _) (sym $ +-suc _ _) (⊔-max->ᵣ $ ≤-pred pf) t
+
+
+-- Insert
+
+
+join-l : {s₁ s₂ h₁ h₂ : ℕ} -> Tree A s₁ 1?+⟨ h₁ ⟩ -> A -> Tree A s₂ h₂ -> Tree A (1 + s₁ + s₂) 1?+⟨ 1 + (h₁ ⊔ h₂) ⟩
+join-l (+0 l) x r = +0 $ Fork l x r
+join-l (+1 l) x r with ord (height l) (height r)
+...         | lt pf = +0 $ subst (Tree _ _) (sym $ cong suc $ ⊔-max-< $ ≤⇒pred≤ pf) $ Fork l x r
+...         | eq pf = +0 $ subst (Tree _ _) (sym $ cong suc $ ⊔-max-≡ pf) $ Fork l x r
+...         | gt pf = +1 $ subst (Tree _ _) (sym $ ⊔-max-> pf) $ Fork l x r
+
+join-r : {s₁ s₂ h₁ h₂ : ℕ} -> Tree A s₁ h₁ -> A -> Tree A s₂ 1?+⟨ h₂ ⟩ -> Tree A (1 + s₁ + s₂) 1?+⟨ 1 + (h₁ ⊔ h₂) ⟩
+join-r l x (+0 r) = +0 $ Fork l x r
+join-r l x (+1 r) with ord (height l) (height r)
+...         | lt pf = +1 $ subst (Tree _ _) (sym $ ⊔-max->ᵣ pf) $ Fork l x r
+...         | eq pf = +0 $ subst (Tree _ _) (sym $ cong suc $ ⊔-max-≡ᵣ pf) $ Fork l x r
+...         | gt pf = +0 $ subst (Tree _ _) (sym $ cong suc $ ⊔-max-<ᵣ $ ≤⇒pred≤ pf) $ Fork l x r
+
+insert : {s h : ℕ} -> Tree A s h -> A -> DecTree A (Tree A (suc s) 1?+⟨ h ⟩) s
+insert Leaf x = return $ +1 $ Fork Leaf x Leaf
+insert (Fork l x r) val = if' val ≤? x
+                          then (delay-≤ (m≤m+n _ _) $ insert l val <&> λ l' -> join-l l' x r)
+                          else (delay-≤ (m≤n+m _ _) $ insert r val <&> λ r' -> +-suc-t $ join-r l x r')
+    where
+        +-suc-t : ∀ {s₁ s₂ h} -> Tree A (suc $ s₁ + suc s₂) 1?+⟨ h ⟩ -> Tree A (suc $ suc $ s₁ + s₂) 1?+⟨ h ⟩
+        +-suc-t {A = A} {h = h} t = subst (λ s -> Tree A s 1?+⟨ h ⟩) (cong suc $ +-suc _ _) t
+
+
+-- Remove
+
 
 remove-min : {s h : ℕ} -> Tree A (suc s) (suc h) -> A × Tree A s 1?+⟨ h ⟩
 remove-min (Fork Leaf x r) = x , +0 r
@@ -105,17 +129,17 @@ merge l@(Fork ll x lr) r with remove-min l
 RemovalTree : Set a -> ℕ -> ℕ -> Set a
 RemovalTree A s h = _⟨_⟩-1? (λ s' -> Tree A s' ⟨ h ⟩-1?) s
 
-remove : {s h : ℕ} -> Tree A s h -> A -> DecTree A (RemovalTree A s h) (2 * h)
+remove : {s h : ℕ} -> Tree A s h -> A -> DecTree A (RemovalTree A s h) (2 * s)
 remove Leaf val = return $ neutral $ neutral Leaf
 remove {A = A} {s = s} {h = h} (Fork l x r) val =
-                    height-≡ (sym $ 2*m≡m+m h) $
-                    delay-≤ (s≤s $ ⊔-+-switch (height l) (height r)) $
+                    height-≡ (sym $ 2*m≡m+m s) $
+                    delay-≤ (s≤s $ comm-⊔≤+ (size l) (size r)) $
                     if val ≤? x
-                    then height-≡ (cong suc $ 2*m≡m+m $ height l) $
+                    then height-≡ (cong suc $ 2*m≡m+m $ size l) $
                          if' x ≤? val
                          then delay-≤ (z≤n) $ return $ remove-merge $ merge l r
                          else (remove l val <&> λ l' -> remove-join-l l' x r)
-                    else (height-≡ (2*m≡m+m $ height r) $ remove r val <&> λ r' -> remove-join-r l x r')
+                    else (height-≡ (2*m≡m+m $ size r) $ remove r val <&> λ r' -> remove-join-r l x r')
     where
         h-1 : ℕ
         h-1 = height l ⊔ height r
@@ -145,35 +169,17 @@ remove {A = A} {s = s} {h = h} (Fork l x r) val =
         ...         | eq pf = decrement $ neutral $ tree₂-⊔-max-≡ᵣ (Fork l x r') pf
         ...         | gt pf = decrement $ neutral $ tree₂-⊔-max-<ᵣ (Fork l x r') pf
 
-{-
-remove : {s h : ℕ} -> Tree A s h -> A -> DecTree A (Σ ℕ (λ s -> Σ ℕ (Tree A s))) {!!}
-remove Leaf _ = return (-, (-, Leaf))
-remove t@(Fork Leaf x Leaf) y =
-                    height-≡ {!!} $
-                    if' y ≤? x
-                    then if' x ≤? y
-                        then return (-, (-, Leaf))
-                        else return (-, (-, t))
-                    else (delay 1 $ return (-, (-, t)))
-remove t@(Fork l@(Fork ll xₗ lr) x Leaf) y =
-                    delay-≤ {!!} $
-                    if y ≤? x
-                    then if x ≤? y
-                         then return (-, (-, l))
-                         else (remove l y <&> λ l' -> -, (-, (Fork (Σ.proj₂ $ Σ.proj₂ l') x Leaf)))
-                    else (return (-, (-, t)))
-remove t@(Fork Leaf x r@(Fork rl xᵣ rr)) y =
-                    delay-≤ {!!} $
-                    if y ≤? x
-                    then if' x ≤? y
-                        then return (-, (-, r))
-                        else return (-, (-, t))
-                    else (remove r y <&> λ r' -> -, (-, (Fork Leaf x (Σ.proj₂ $ Σ.proj₂ r'))))
-remove t@(Fork l@(Fork ll xₗ lr) x r@(Fork rl xᵣ rr)) y =
-                    delay-≤ {!!} $
-                    if' y ≤? x
-                    then if' x ≤? y
-                        then {!!}
-                        else (remove l y <&> λ l' -> -, (-, (Fork (Σ.proj₂ $ Σ.proj₂ l') x r)))
-                    else (remove r y <&> λ r' -> -, (-, (Fork l x (Σ.proj₂ $ Σ.proj₂ r'))))
--}
+
+-- Contains
+
+contains : {s h : ℕ} -> Tree A s h -> A -> DecTree A Bool (2 * s)
+contains Leaf _ = return false
+contains t@(Fork l x r) val =
+                            height-≡ (sym $ 2*m≡m+m $ size t) $
+                            delay-≤ (s≤s (comm-⊔≤+ (size l) (size r))) $
+                            if val ≤? x
+                            then height-≡ (cong suc $ 2*m≡m+m $ size l) $
+                                 if' x ≤? val
+                                 then delay-≤ z≤n $ return true
+                                 else contains l val
+                            else (height-≡ (2*m≡m+m $ size r) $ contains r val)
