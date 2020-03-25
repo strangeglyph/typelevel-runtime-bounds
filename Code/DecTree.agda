@@ -9,6 +9,7 @@ open import Data.Nat.Properties hiding (_≤?_)
 open import Function
 
 open import Leq
+open import Nat.Props
 
 private
     variable
@@ -54,22 +55,12 @@ _<&>_ : {R R' : Set b} -> {h : ℕ} -> DecTree Compare R' h -> (R' -> R) -> DecT
 t <&> f = f <$> t
 
 
-record Diff (x y : ℕ) : Set where
-    constructor Diff_by_
-    field
-        k : ℕ
-        pf : (x + k) ≡ y
-
-
 delay' : {h : ℕ} -> (d : ℕ) -> DecTree Compare Result h -> DecTree Compare Result (d + h)
 delay' {h = h} d tree = height-≡ (+-comm h d) $ delay d tree
 
 
 delay-≤ : {d d' : ℕ} -> d ≤ d' -> DecTree Compare Result d -> DecTree Compare Result d'
 delay-≤ d≤d' tree = case diff d≤d' of λ (Diff n by pf) -> height-≡ pf $ delay n tree
-    where diff : ∀ {x y} -> x ≤ y -> Diff x y
-          diff (z≤n {n}) = Diff n by refl
-          diff (s≤s m≤n) = case (diff m≤n) of λ (Diff n by pf) -> Diff n by cong suc pf
 
 
 if[_]_≤?_then_else_by_ : ∀ {l} {Idx : Set l} -> {i₁ i₂ : Idx} -> (Result : Idx -> Set b) -> {h₁ h₂ : ℕ} -> Compare -> Compare -> DecTree Compare (Result i₁) h₁ -> DecTree Compare (Result i₂) h₂ -> i₂ ≡ i₁ -> DecTree Compare (Result i₁) (1 + (h₁ ⊔ h₂))

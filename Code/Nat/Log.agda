@@ -7,7 +7,7 @@ open import Relation.Binary.PropositionalEquality
 open import Function using (_$_ ; _∘_)
 open import Induction.WellFounded using (Acc)
 
-open import NatProp
+open import Nat.Props
 
 -- Implementation taken from https://gist.github.com/gallais/5643718
 

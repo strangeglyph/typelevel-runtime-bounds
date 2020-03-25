@@ -1,10 +1,13 @@
-module NatProp where
+module Nat.Props where
 
 open import Data.Nat
 open import Data.Nat.Properties
+open import Data.Product
 open import Relation.Binary.PropositionalEquality
 open import Induction.WellFounded
 open import Function
+
+open import Nat.Base
 
 data Ord : ℕ -> ℕ -> Set where
     lt : {x y : ℕ} -> x < y -> Ord x y
@@ -21,6 +24,17 @@ ord (suc x) (suc y) with ord x y
 ...                 | lt pf = lt $ s≤s pf
 ...                 | eq pf = eq $ cong suc pf
 ...                 | gt pf = gt $ s≤s pf
+
+
+record Diff (x y : ℕ) : Set where
+    constructor Diff_by_
+    field
+        k : ℕ
+        pf : (x + k) ≡ y
+
+diff : {x y : ℕ} -> x ≤ y -> Diff x y
+diff (z≤n {n}) = Diff n by refl
+diff (s≤s m≤n) = case (diff m≤n) of λ (Diff n by pf) -> Diff n by cong suc pf
 
 
 2*m≡m+m : ∀ m -> 2 * m ≡ m + m
@@ -104,6 +118,14 @@ n>0⇒⌊n/2⌋<n (suc (suc k)) = ≤-step $ s≤s $ n>0⇒⌊n/2⌋<n k
 
 n>1⇒⌈n/2⌉<n : ∀ n-2 -> let n = 2 + n-2 in ⌈ n /2⌉ < n
 n>1⇒⌈n/2⌉<n k = s≤s $ n>0⇒⌊n/2⌋<n $ k
+
+⌈1+n/5⌉>0 : ∀ n -> Σ ℕ (λ m -> ⌈ (suc n) /5⌉ ≡ suc m)
+⌈1+n/5⌉>0 zero = 0 , refl
+⌈1+n/5⌉>0 (suc zero) = 0 , refl
+⌈1+n/5⌉>0 (suc (suc zero)) = 0 , refl
+⌈1+n/5⌉>0 (suc (suc (suc zero))) = 0 , refl
+⌈1+n/5⌉>0 (suc (suc (suc (suc zero)))) = 0 , refl
+⌈1+n/5⌉>0 (suc (suc (suc (suc (suc n))))) = let m , pf = ⌈1+n/5⌉>0 n in suc m , cong suc pf
 
 a+1+b+c+d≡a+b+1+c+d : ∀ a b c d -> a + suc (b + c + d) ≡ a + b + suc (c + d)
 a+1+b+c+d≡a+b+1+c+d a b c d = begin
