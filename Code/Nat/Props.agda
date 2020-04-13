@@ -274,6 +274,59 @@ a+a*n/10≥a*[n+5]/10 a n = begin
     where
         open ≤-Reasoning
 
+a+b≡c⇒b≡c-a : ∀ a b c -> a + b ≡ c -> b ≡ c ∸ a
+a+b≡c⇒b≡c-a zero b c a+b≡c = a+b≡c
+a+b≡c⇒b≡c-a a@(suc a-1) b c@(suc c-1) a+b≡c = a+b≡c⇒b≡c-a a-1 b c-1 $ suc-injective a+b≡c
+
+
+1+a+b+c≡n∧a,b≥3n/10⇒c≤4n/10 : ∀ {a b c n} -> suc (a + b + c) ≡ n -> suc a ≥ 3 * (n / 10) -> suc b ≥ 3 * (n / 10) -> c ≤ 4 * (n / 10) + 19
+1+a+b+c≡n∧a,b≥3n/10⇒c≤4n/10 {a} {b} {c} {n} 1+a+b+c≡n a≥3n/10 b≥3n/10 = begin
+        c                                                         ≡⟨ a+b≡c⇒b≡c-a (suc a + b) c n 1+a+b+c≡n ⟩
+        n ∸ (1 + a + b)                                           ≤⟨ ∸-monoʳ-≤ n 1+a+b≥3n/10+b ⟩
+        n ∸ (3 * (n / 10) + b)                                    ≡⟨⟩
+        suc n ∸ suc (3 * (n / 10) + b)                            ≡⟨ cong (suc n ∸_) $ sym $ +-suc (3 * (n / 10)) b ⟩
+        suc n ∸ (3 * (n / 10) + suc b)                            ≤⟨ ∸-monoʳ-≤ (suc n) 3n/10+1+b≥3n/10+3n/10 ⟩
+        suc n ∸ (3 * (n / 10) + 3 * (n / 10))                     ≡⟨ cong (suc n ∸_) (sym $ *-distribʳ-+ (n / 10) 3 3) ⟩
+        suc n ∸ 6 * (n / 10)                                      ≡⟨ cong (_∸ 6 * (n / 10)) $ m≡m%n+[m/n]*n (suc n) 9  ⟩
+        suc n % 10 + (suc n / 10) * 10 ∸ 6 * (n / 10)             ≡⟨ cong (λ x → suc n % 10 + x ∸ 6 * (n / 10)) $ *-comm (suc n / 10) 10 ⟩
+        suc n % 10 + 10 * (suc n / 10) ∸ 6 * (n / 10)             ≡⟨⟩
+        6 + suc n % 10 + 10 * (suc n / 10) ∸ (6 + 6 * (n / 10))   ≡⟨ cong ((6 + suc n % 10 + 10 * (suc n / 10)) ∸_) $ sym $ *-suc 6 (n / 10) ⟩
+        6 + suc n % 10 + 10 * (suc n / 10) ∸ 6 * suc (n / 10)     ≡⟨ cong (λ x → 6 + suc n % 10 + 10 * (suc n / 10) ∸ 6 * x) $ sym $ [n+m]/n≡1+m/n n 9 ⟩
+        6 + suc n % 10 + 10 * (suc n / 10) ∸ 6 * ((10 + n) / 10)  ≤⟨ ∸-monoʳ-≤ (6 + suc n % 10 + 10 * (suc n / 10)) 6[10+n]/10≥6[1+n]/10 ⟩
+        6 + suc n % 10 + 10 * (suc n / 10) ∸ 6 * (suc n / 10)     ≡⟨ +-∸-assoc (6 + suc n % 10) $ *-monoˡ-≤ (suc n / 10) 6≤10 ⟩
+        6 + suc n % 10 + (10 * (suc n / 10) ∸ 6 * (suc n / 10))   ≡⟨ cong ((6 + suc n % 10) +_) $ sym $ *-distribʳ-∸ (suc n / 10) 10 6 ⟩
+        6 + suc n % 10 + 4 * (suc n / 10)                         ≤⟨ +-monoˡ-≤ (4 * (suc n / 10)) (+-monoʳ-≤ 6 (a[modₕ]n<n 0 (suc n) 9)) ⟩
+        15 + 4 * (suc n / 10)                                     ≤⟨ +-monoʳ-≤ 15 $ *-monoʳ-≤ 4 $ /-monoˡ-≤ {suc n} {10 + n} {10} $ +-monoˡ-≤ n $ s≤s z≤n ⟩
+        15 + 4 * ((10 + n) / 10)                                  ≡⟨ cong (λ x -> 15 + 4 * x) $ [n+m]/n≡1+m/n n 9 ⟩
+        15 + 4 * suc (n / 10)                                     ≡⟨ cong (15 +_) $ *-suc 4 (n / 10) ⟩
+        15 + (4 + 4 * (n / 10))                                   ≡⟨ +-assoc 15 4 (4 * (n / 10)) ⟩
+        19 + 4 * (n / 10)                                         ≡⟨ +-comm 19 (4 * (n / 10)) ⟩
+        4 * (n / 10) + 19                                         ∎
+    where
+        open ≤-Reasoning
+        1+a+b≥3n/10+b : 1 + a + b ≥ 3 * (n / 10) + b
+        1+a+b≥3n/10+b = +-monoˡ-≤ b a≥3n/10
+        3n/10+1+b≥3n/10+3n/10 : (3 * (n / 10)) + suc b ≥ 3 * (n / 10) + 3 * (n / 10)
+        3n/10+1+b≥3n/10+3n/10 = +-monoʳ-≤ (3 * (n / 10)) b≥3n/10
+        6[10+n]/10≥6[1+n]/10 : 6 * ((10 + n) / 10) ≥ 6 * (suc n / 10)
+        6[10+n]/10≥6[1+n]/10 = *-monoʳ-≤ 6 $ /-monoˡ-≤ {suc n} {10 + n} {10} $ +-monoˡ-≤ n $ s≤s z≤n
+        6≤10 : 6 ≤ 10
+        6≤10 = ≤-step $ ≤-step $ ≤-step $ ≤-step ≤-refl
+        [1+n]%10≤9 : suc n % 10 ≤ 9
+        [1+n]%10≤9 = a[modₕ]n<n 0 (suc n) 9
+
+a+b+c≡n∧a≡k∧b≡n-k⇒c≡0 : ∀ {a b c n k} -> a + b + c ≡ n -> a ≡ k -> b ≡ n ∸ k -> k ≤ n -> c ≡ 0
+a+b+c≡n∧a≡k∧b≡n-k⇒c≡0 {a} {b} {c} {n} {k} a+b+c≡n a≡k b≡n-k k≤n = begin
+        c                  ≡⟨ a+b≡c⇒b≡c-a (a + b) c n a+b+c≡n ⟩
+        n ∸ (a + b)        ≡⟨ cong (λ x → n ∸ (x + b)) a≡k ⟩
+        n ∸ (k + b)        ≡⟨ cong (λ x → n ∸ (k + x)) b≡n-k ⟩
+        n ∸ (k + (n ∸ k))  ≡⟨ cong (n ∸_) $ +-comm k (n ∸ k) ⟩
+        n ∸ (n ∸ k + k)    ≡⟨ cong (n ∸_) $ m∸n+n≡m k≤n ⟩
+        n ∸ n              ≡⟨ n∸n≡0 n ⟩
+        0                  ∎
+    where
+        open ≡-Reasoning
+
 a+1+b+c+d≡a+b+1+c+d : ∀ a b c d -> a + suc (b + c + d) ≡ a + b + suc (c + d)
 a+1+b+c+d≡a+b+1+c+d a b c d = begin
         a + suc (b + c + d)     ≡⟨ cong (a +_) $ cong suc $ +-assoc b c d ⟩

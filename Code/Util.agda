@@ -2,8 +2,9 @@ module Util where
 
 open import Level using (Level)
 open import Data.Nat
+open import Data.Nat.Properties using (m≤n+m)
 open import Data.Vec
-open import Data.Fin using (Fin ; raise) renaming (zero to fzero ; suc to fsuc)
+open import Data.Fin using (Fin ; raise ; inject≤) renaming (zero to fzero ; suc to fsuc)
 open import Relation.Binary.PropositionalEquality
 open import Function
 
@@ -37,6 +38,9 @@ record Indexed (A : Set a) (l : ℕ) : Set a where
 
 raise-ix : ∀ {l} -> (k : ℕ) -> Indexed A l -> Indexed A (k + l)
 raise-ix k (index i x) = index (raise k i) x
+
+inject-ix : ∀ {l} -> (k : ℕ) -> Indexed A l -> Indexed A (k + l)
+inject-ix k (index i x) = index (inject≤ i $ m≤n+m _ _) x
 
 f0 : ∀ {n} -> Fin (suc n)
 f0 = fzero

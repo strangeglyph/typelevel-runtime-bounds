@@ -26,3 +26,7 @@ nℕ-ℕsuc⌊n/2⌋≡⌊n-1/2⌋ n-1 = let n = suc n-1 in begin
         ⌊ n-1 /2⌋                                     ∎
     where
         open ≡-Reasoning
+
+a+b+c≡n∧a≡k∧b≡nℕ-ℕk⇒c≡0 : ∀ {a b c n} -> {k : Fin $ suc n} -> a + b + c ≡ n -> a ≡ toℕ k -> b ≡ n ℕ-ℕ k -> c ≡ 0
+a+b+c≡n∧a≡k∧b≡nℕ-ℕk⇒c≡0 {n = n} {k = k} a+b+c≡n a≡k b≡nℕ-ℕk
+        = a+b+c≡n∧a≡k∧b≡n-k⇒c≡0 a+b+c≡n a≡k (trans b≡nℕ-ℕk $ nℕ-ℕi≡n∸i n k) (≤-pred $ toℕ<n k)

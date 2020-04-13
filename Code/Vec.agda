@@ -22,6 +22,7 @@ open import Util
 open import Nat.Log
 open import Nat.Base
 open import Nat.Props
+open import Fin.Props
 
 private
     variable
@@ -85,13 +86,14 @@ pivot-append-r x (left , right by pf) = left , x ∷ right by trans (+-suc (len 
 
 
 -- Split a vector into values smaller and larger than a pivot element
-split-pivot : {l : ℕ}-> A -> Vec A l -> PivotTree A l l
-split-pivot _ [] = return $ [] , [] by refl
-split-pivot {A = A} {l = suc l'} k (x ∷ xs) =  subst (PivotTree A (suc l')) (⊔-idem (suc l')) (
-                             if x ≤? k
-                             then (pivot-append-l x <$> split-pivot k xs)
-                             else (pivot-append-r x <$> split-pivot k xs))
+split-pivot-by : {X A : Set a} -> {l : ℕ} -> (X -> A) -> X -> Vec X l -> DecTree A (SplitVec X l) l
+split-pivot-by _ _ [] = return $ [] , [] by refl
+split-pivot-by {A = A} {l = suc l'} f k (x ∷ xs) = if' f x ≤? f k
+                                                   then (pivot-append-l x <$> split-pivot-by f k xs)
+                                                   else (pivot-append-r x <$> split-pivot-by f k xs)
 
+split-pivot : {l : ℕ} -> A -> Vec A l -> PivotTree A l l
+split-pivot = split-pivot-by id
 
 -- Sort a vector using merge sort
 quick-sort : {l : ℕ} -> Vec A l -> VecTree A l (l * l)
@@ -187,24 +189,24 @@ module Median where
             field
                 median : Indexed A l
                 {l₁ l₂ l₃} : ℕ
-                smaller : Vec A l₁
-                larger : Vec A l₂
-                unknown : Vec A l₃
+                smaller : Vec (Indexed A l) l₁
+                larger : Vec (Indexed A l) l₂
+                unknown : Vec (Indexed A l) l₃
                 length-≡ : suc (l₁ + l₂ + l₃) ≡ l
                 bound-smaller : b₁ l₁
                 bound-larger : b₂ l₂
 
         M2 : Set a -> ℕ -> Set a
-        M2 A l = Indexed A l × A
+        M2 A l = Indexed A l × Indexed A l
 
         M3 : Set a -> ℕ -> Set a
-        M3 A l = A × Indexed A l × A
+        M3 A l = Indexed A l × Indexed A l × Indexed A l
 
         M4 : Set a -> ℕ -> Set a
-        M4 A l = A × Indexed A l × A × A
+        M4 A l = Indexed A l × Indexed A l × Indexed A l × Indexed A l
 
         M5 : Set a -> ℕ -> Set a
-        M5 A l = A × A × Indexed A l × A × A
+        M5 A l = Indexed A l × Indexed A l × Indexed A l × Indexed A l × Indexed A l
 
         data MX (A : Set a) (l : ℕ) : Set a where
             m1 : Indexed A l -> MX A l
@@ -213,147 +215,147 @@ module Median where
             m4 : M4 A l -> MX A l
 
 
-        median2 : A -> A -> DecTree A (M2 A 2) 1
-        median2 {A = A} x' y' =
-                if x' ≤? y'
-                then (return $ x , y')
-                else (return $ y , x')
+        median2-by : {X A : Set a} -> (X -> A) -> X -> X -> DecTree A (M2 X 2) 1
+        median2-by {X = X} f x' y' =
+                if f x' ≤? f y'
+                then (return $ x , y)
+                else (return $ y , x)
             where
-                x y : Indexed A 2
+                x y : Indexed X 2
                 x = index f0 x'
                 y = index f1 y'
 
 
-        median3 : A -> A -> A -> DecTree A (M3 A 3) 3
-        median3 {A = A} x' y' z' =
-                if x' ≤? y'
-                then if x' ≤? z'
-                    then if y' ≤? z'
-                        then (return $ x' , y , z')
-                        else (return $ x' , z , y')
-                    else (return $ z' , x , y')
-                else if y' ≤? z'
-                    then if x' ≤? z'
-                        then (return $ y' , x , z')
-                        else (return $ y' , z , x')
-                    else (return $ z' , y , x')
+        median3-by : {X A : Set a} -> (X -> A) -> X -> X -> X -> DecTree A (M3 X 3) 3
+        median3-by {X = X} f x' y' z' =
+                if f x' ≤? f y'
+                then if f x' ≤? f z'
+                    then if f y' ≤? f z'
+                        then (return $ x , y , z)
+                        else (return $ x , z , y)
+                    else (return $ z , x , y)
+                else if f y' ≤? f z'
+                    then if f x' ≤? f z'
+                        then (return $ y , x , z)
+                        else (return $ y , z , x)
+                    else (return $ z , y , x)
             where
-                x y z : Indexed A 3
+                x y z : Indexed X 3
                 x = index f0 x'
                 y = index f1 y'
                 z = index f2 z'
 
-        median4 : A -> A -> A -> A -> DecTree A (M4 A 4) 5
-        median4 {A = A} w x y z =
-                if w ≤? x
-                then if x ≤? y
-                    then if x ≤? z
-                        then (return $ w , xI , y , z)
-                        else if w ≤? z
-                            then (return $ w , zI , x , y)
-                            else (return $ z , wI , x , y)
-                    else if w ≤? y
-                        then if y ≤? z
-                            then (return $ w , yI , z , x)
-                            else if w ≤? z
-                                    then (return $ w , zI , y , x)
-                                    else (return $ z , wI , y , x)
-                        else if w ≤? z
-                            then (return $ y , wI , z , x)
-                            else if y ≤? z
-                                    then (return $ y , zI , w , x)
-                                    else (return $ z , yI , w , x)
-                else if w ≤? y
-                    then if w ≤? z
-                        then (return $ x , wI , z , y)
-                        else if x ≤? z
-                            then (return $ x , zI , w , y)
-                            else (return $ z , xI , w , y)
-                    else if x ≤? y
-                        then if y ≤? z
-                            then (return $ x , yI , z , w)
-                            else if x ≤? z
-                                    then (return $ x , zI , y , w)
-                                    else (return $ z , xI , y , w)
-                        else if x ≤? z
-                            then (return $ y , xI , z , w)
-                            else if y ≤? z
-                                    then (return $ y , zI , x , w)
-                                    else (return $ z , yI , x , w)
+        median4-by : {X A : Set a} -> (X -> A) -> X -> X -> X -> X -> DecTree A (M4 X 4) 5
+        median4-by {X = X} f w x y z =
+                if f w ≤? f x
+                then if f x ≤? f y
+                    then if f x ≤? f z
+                        then (return $ wI , xI , yI , zI)
+                        else if f w ≤? f z
+                            then (return $ wI , zI , xI , yI)
+                            else (return $ zI , wI , xI , yI)
+                    else if f w ≤? f y
+                        then if f y ≤? f z
+                            then (return $ wI , yI , zI , xI)
+                            else if f w ≤? f z
+                                    then (return $ wI , zI , yI , xI)
+                                    else (return $ zI , wI , yI , xI)
+                        else if f w ≤? f z
+                            then (return $ yI , wI , zI , xI)
+                            else if f y ≤? f z
+                                    then (return $ yI , zI , wI , xI)
+                                    else (return $ zI , yI , wI , xI)
+                else if f w ≤? f y
+                    then if f w ≤? f z
+                        then (return $ xI , wI , zI , yI)
+                        else if f x ≤? f z
+                            then (return $ xI , zI , wI , yI)
+                            else (return $ zI , xI , wI , yI)
+                    else if f x ≤? f y
+                        then if f y ≤? f z
+                            then (return $ xI , yI , zI , wI)
+                            else if f x ≤? f z
+                                    then (return $ xI , zI , yI , wI)
+                                    else (return $ zI , xI , yI , wI)
+                        else if f x ≤? f z
+                            then (return $ yI , xI , zI , wI)
+                            else if f y ≤? f z
+                                    then (return $ yI , zI , xI , wI)
+                                    else (return $ zI , yI , xI , wI)
 
             where
-                wI xI yI zI : Indexed A 4
+                wI xI yI zI : Indexed X 4
                 wI = index f0 w
                 xI = index f1 x
                 yI = index f2 y
                 zI = index f3 y
 
-        median5 : A -> A -> A -> A -> A -> DecTree A (M5 A 5) 7
-        median5 v w x y z =
-                if v ≤? w
+        median5-by : {X A : Set a} -> (X -> A) -> X -> X -> X -> X -> X -> DecTree A (M5 X 5) 7
+        median5-by {X = X} {A = A} f v w x y z =
+                if f v ≤? f w
                 then median5₁ (index f0 v) (index f1 w) (index f2 x) (index f3 y) (index f4 z)
                 else median5₁ (index f1 w) (index f0 v) (index f2 x) (index f3 y) (index f4 z) -- swap v, w
             where
-                median5₃ : Indexed A 5 -> Indexed A 5 -> Indexed A 5 -> Indexed A 5 -> Indexed A 5 -> DecTree A (M5 A 5) 4
+                median5₃ : Indexed X 5 -> Indexed X 5 -> Indexed X 5 -> Indexed X 5 -> Indexed X 5 -> DecTree A (M5 X 5) 4
                 median5₃ vI@(index _ v) wI@(index _ w) xI@(index _ x) yI@(index _ y) zI@(index _ z) =
-                    if w ≤? x
-                    then if w ≤? z
-                        then if x ≤? z
-                            then (return $ v , w , xI , z , y)
-                            else (return $ v , w , zI , x , y)
-                        else (return $ v , z , wI , x , y)
-                    else if w ≤? z
-                        then (return $ v , x , wI , z , y)
-                        else if v ≤? x
-                            then if x ≤? z
-                                then (return $ v , x , zI , w , y)
-                                else (return $ v , z , xI , w , y)
-                            else if v ≤? z
-                                then (return $ x , v , zI , w , y)
-                                else (return $ x , z , vI , w , y)
-                median5₂ : Indexed A 5 -> Indexed A 5 -> Indexed A 5 -> Indexed A 5 -> Indexed A 5 -> DecTree A (M5 A 5) 5
+                    if f w ≤? f x
+                    then if f w ≤? f z
+                        then if f x ≤? f z
+                            then (return $ vI , wI , xI , zI , yI)
+                            else (return $ vI , wI , zI , xI , yI)
+                        else (return $ vI , zI , wI , xI , yI)
+                    else if f w ≤? f z
+                        then (return $ vI , xI , wI , zI , yI)
+                        else if f v ≤? f x
+                            then if f x ≤? f z
+                                then (return $ vI , xI , zI , wI , yI)
+                                else (return $ vI , zI , xI , wI , yI)
+                            else if f v ≤? f z
+                                then (return $ xI , vI , zI , wI , yI)
+                                else (return $ xI , zI , vI , wI , yI)
+                median5₂ : Indexed X 5 -> Indexed X 5 -> Indexed X 5 -> Indexed X 5 -> Indexed X 5 -> DecTree A (M5 X 5) 5
                 median5₂ vI wI@(index _ w) xI yI@(index _ y) zI =
-                    if w ≤? y
+                    if f w ≤? f y
                     then median5₃ vI wI xI yI zI
                     else median5₃ xI yI vI wI zI  -- swap (v w), (x y)
-                median5₁ : Indexed A 5 -> Indexed A 5 -> Indexed A 5 -> Indexed A 5 -> Indexed A 5 -> DecTree A (M5 A 5) 6
+                median5₁ : Indexed X 5 -> Indexed X 5 -> Indexed X 5 -> Indexed X 5 -> Indexed X 5 -> DecTree A (M5 X 5) 6
                 median5₁ vI wI xI@(index _ x) yI@(index _ y) zI =
-                    if x ≤? y
+                    if f x ≤? f y
                     then median5₂ vI wI xI yI zI
                     else median5₂ vI wI yI xI zI -- swap x, y
 
 
         inc-idx-m5 : ∀ {l} -> M5 A l -> M5 A (5 + l)
-        inc-idx-m5 v = Data.Product.map₂ (Data.Product.map₂ (Data.Product.map₁ (raise-ix 5))) v
+        inc-idx-m5 (a , b , c , d , e) = (raise-ix 5 a) , (raise-ix 5 b) , (raise-ix 5 c) , (raise-ix 5 d) , (raise-ix 5 e)
 
         inc-idx-mx : ∀ {l} -> MX A l -> MX A (5 + l)
-        inc-idx-mx (m1 v) = m1 $ raise-ix 5 v
-        inc-idx-mx (m2 v) = m2 $ Data.Product.map₁ (raise-ix 5) v
-        inc-idx-mx (m3 v) = m3 $ Data.Product.map₂ (Data.Product.map₁ (raise-ix 5)) v
-        inc-idx-mx (m4 v) = m4 $ Data.Product.map₂ (Data.Product.map₁ (raise-ix 5)) v
+        inc-idx-mx (m1 v)               = m1 $ raise-ix 5 v
+        inc-idx-mx (m2 (a , b))         = m2 $ (raise-ix 5 a) , (raise-ix 5 b)
+        inc-idx-mx (m3 (a , b , c))     = m3 $ (raise-ix 5 a) , (raise-ix 5 b) , (raise-ix 5 c)
+        inc-idx-mx (m4 (a , b , c , d)) = m4 $ (raise-ix 5 a) , (raise-ix 5 b) , (raise-ix 5 c) , (raise-ix 5 d)
 
         lift-m5 : ∀ {l} -> M5 A 5 -> M5 A (5 + l)
-        lift-m5 {l = l} (a , b , c , d , e) = subst (M5 _) (+-comm l 5) $ a , b , (raise-ix l c) , d , e
+        lift-m5 {l = l} (a , b , c , d , e) = subst (M5 _) (+-comm l 5) $ (inject-ix l a) , (inject-ix l b) , (inject-ix l c) , (inject-ix l d) , (inject-ix l e)
 
 
         data Medians-Of-5 (A : Set a) (l : ℕ) : Set a where
-            medians : Vec (M5 A l) ⌊ l /5⌋ -> Vec A (l % 5) -> Medians-Of-5 A l
+            medians : Vec (M5 A l) ⌊ l /5⌋ -> Vec (Indexed A l) (l % 5) -> Medians-Of-5 A l
 
         _:::_ : {l : ℕ} -> M5 A 5 -> Medians-Of-5 A l -> Medians-Of-5 A (5 + l)
-        m5 ::: (medians ms overflow) = medians ((lift-m5 m5) ∷ (Data.Vec.map inc-idx-m5 ms)) overflow
+        m5 ::: (medians ms overflow) = medians ((lift-m5 m5) ∷ (Data.Vec.map inc-idx-m5 ms)) (Data.Vec.map (raise-ix 5) overflow)
 
 
-        medians-of-5 : {l : ℕ} -> Vec A l -> DecTree A (Medians-Of-5 A l) (2 * l)
-        medians-of-5 []                       = return $ medians [] []
-        medians-of-5 xs@(_ ∷ [])              = delay 2 $ return $ medians [] xs
-        medians-of-5 xs@(a ∷ b ∷ [])          = delay 4 $ return $ medians [] xs
-        medians-of-5 xs@(a ∷ b ∷ c ∷ [])      = delay 6 $ return $ medians [] xs
-        medians-of-5 xs@(a ∷ b ∷ c ∷ d ∷ [])  = delay 8 $ return $ medians [] xs
-        medians-of-5 (a ∷ b ∷ c ∷ d ∷ e ∷ xs) = let n = len xs in
+        medians-of-5-by : {X A : Set a} -> {l : ℕ} -> (X -> A) -> Vec X l -> DecTree A (Medians-Of-5 X l) (2 * l)
+        medians-of-5-by _ []                       = return $ medians [] []
+        medians-of-5-by _ (a ∷ [])              = delay 2 $ return $ medians [] [ index f0 a ]
+        medians-of-5-by _ (a ∷ b ∷ [])          = delay 4 $ return $ medians [] $ (index f0 a) ∷ [ index f1 b ]
+        medians-of-5-by _ (a ∷ b ∷ c ∷ [])      = delay 6 $ return $ medians [] $ (index f0 a) ∷ (index f1 b) ∷ [ index f2 c ]
+        medians-of-5-by _ (a ∷ b ∷ c ∷ d ∷ [])  = delay 8 $ return $ medians [] $ (index f0 a) ∷ (index f1 b) ∷ (index f2 c) ∷ [ index f3 d ]
+        medians-of-5-by f (a ∷ b ∷ c ∷ d ∷ e ∷ xs) = let n = len xs in
                                                 height-≡ (sym $ *-distribˡ-+ 2 5 n) $
                                                 height-≡ (cong (10 +_) $ +-identityʳ (n + (n + 0))) $ do
-                                                m5 <- delay 3 $ median5 a b c d e
-                                                ms <- medians-of-5 xs
+                                                m5 <- delay 3 $ median5-by f a b c d e
+                                                ms <- medians-of-5-by f xs
                                                 return $ m5 ::: ms
 
 
@@ -394,10 +396,16 @@ module Median where
             where
                 open ≡-Reasoning
 
-    quasi-median : {l-1 : ℕ} -> let l = suc l-1 in Vec A l -> DecTree A (Split A l (λ x → suc x ≥ 3 * (l / 10)) (λ x → suc x ≥ 3 * (l / 10))) (4 * l)
-    ordselect-by : {A X : Set a} {l-1 : ℕ} -> let l = suc l-1 in (X -> A) -> (i : Fin l) -> (xs : Vec X l) -> DecTree A (Split X l (_≡ Data.Fin.toℕ i) (_≡ l Data.Fin.ℕ-ℕ (Data.Fin.raise 1 i))) (10 * l)
+    Quasi-Median : Set a -> ℕ -> Set a
+    Quasi-Median A l = Split A l (λ x → suc x ≥ 3 * (l / 10)) (λ x → suc x ≥ 3 * (l / 10))
 
-    quasi-median (a ∷ []) = delay 4 $ return $ record
+    Ordselect : Set a -> (l : ℕ) -> (i : Fin l) -> Set a
+    Ordselect A l i = Split A l (_≡ Data.Fin.toℕ i) (_≡ l Data.Fin.ℕ-ℕ (Data.Fin.raise 1 i))
+
+    quasi-median-by : {A X : Set a} -> {l-1 : ℕ} -> let l = suc l-1 in (X -> A) -> Vec X l -> DecTree A (Quasi-Median X l) (4 * l)
+    ordselect-by : {A X : Set a} {l-1 : ℕ} -> let l = suc l-1 in (X -> A) -> (i : Fin l) -> (xs : Vec X l) -> DecTree A (Ordselect X l i) (10 * l)
+
+    quasi-median-by _ (a ∷ []) = delay 4 $ return $ record
                                     { median = index f0 a
                                     ; smaller = []
                                     ; larger = []
@@ -406,7 +414,7 @@ module Median where
                                     ; bound-smaller = z≤n
                                     ; bound-larger = z≤n
                                     }
-    quasi-median (a ∷ b ∷ []) = delay 7 $ median2 a b <&> λ (med , l) → record
+    quasi-median-by f (a ∷ b ∷ []) = delay 7 $ median2-by f a b <&> λ (med , l) → record
                                     { median = med
                                     ; smaller = []
                                     ; larger = [ l ]
@@ -415,7 +423,7 @@ module Median where
                                     ; bound-smaller = z≤n
                                     ; bound-larger = z≤n
                                     }
-    quasi-median (a ∷ b ∷ c ∷ []) = delay 9 $ median3 a b c <&> λ (s , med , l) → record
+    quasi-median-by f (a ∷ b ∷ c ∷ []) = delay 9 $ median3-by f a b c <&> λ (s , med , l) → record
                                     { median = med
                                     ; smaller = [ s ]
                                     ; larger = [ l ]
@@ -424,7 +432,7 @@ module Median where
                                     ; bound-smaller = z≤n
                                     ; bound-larger = z≤n
                                     }
-    quasi-median (a ∷ b ∷ c ∷ d ∷ []) = delay 11 $ median4 a b c d <&> λ (s , med , l₁ , l₂) → record
+    quasi-median-by f (a ∷ b ∷ c ∷ d ∷ []) = delay 11 $ median4-by f a b c d <&> λ (s , med , l₁ , l₂) → record
                                     { median = med
                                     ; smaller = [ s ]
                                     ; larger = l₁ ∷ [ l₂ ]
@@ -433,14 +441,14 @@ module Median where
                                     ; bound-smaller = z≤n
                                     ; bound-larger = z≤n
                                     }
-    quasi-median {l-1 = l-1} xs@(_ ∷ _ ∷ _ ∷ _ ∷ _ ∷ xss) = let l = suc l-1 in
+    quasi-median-by {l-1 = l-1} f xs@(_ ∷ _ ∷ _ ∷ _ ∷ _ ∷ xss) = let l = suc l-1 in
         height-≡ (sym $ *-distribʳ-+ l 2 2) $
         height-≡ (+-identityʳ (2 * l + 2 * l)) $
         height-≡ (sym $ +-assoc (2 * l) (2 * l) 0 ) $
         do
-            medians ms overflow <- medians-of-5 xs
+            medians ms overflow <- medians-of-5-by f xs
             let ix = ix-half ms
-            med-of-meds' <- delay-≤ (10⌊n/5⌋≤2n l) $ ordselect-by m5-extract-value ix ms
+            med-of-meds' <- delay-≤ (10⌊n/5⌋≤2n l) $ ordselect-by (f ∘ m5-extract-value) ix ms
             let med-of-meds = simplify-med-split {v = ms} med-of-meds'
             return $ record
                    { median = m5-extract-indexed $ Indexed.value $ Split.median med-of-meds
@@ -459,17 +467,17 @@ module Median where
             m5-extract-value (_ , _ , (index _ v) , _ , _) = v
             m5-extract-indexed : ∀ {l} -> M5 A l -> Indexed A l
             m5-extract-indexed (_ , _ , iv , _ , _) = iv
-            m5-strictly-smaller : ∀ {l} -> M5 A l -> Vec A 2
+            m5-strictly-smaller : ∀ {l} -> M5 A l -> Vec (Indexed A l) 2
             m5-strictly-smaller (s₁ , s₂ , _ , _ , _) = s₁ ∷ [ s₂ ]
-            m5-strictly-larger : ∀ {l} -> M5 A l -> Vec A 2
+            m5-strictly-larger : ∀ {l} -> M5 A l -> Vec (Indexed A l) 2
             m5-strictly-larger (_ , _ , _ , l₁ , l₂) = l₁ ∷ [ l₂ ]
-            m5-extract-l : ∀ {l l'} -> Vec (M5 A l') l -> Vec A (3 * l)
-            m5-extract-l {l = l} xs = subst (Vec _) (*-comm l 3) $ concat $ Data.Vec.map (λ (s₁ , s₂ , (index _ m) , _ , _) → s₁ ∷ s₂ ∷ [ m ]) xs
-            m5-extract-r : ∀ {l l'} -> Vec (M5 A l') l -> Vec A (3 * l)
-            m5-extract-r {l = l} xs = subst (Vec _) (*-comm l 3) $ concat $ Data.Vec.map (λ (_ , _ , (index _ m) , l₁ , l₂) → l₁ ∷ l₂ ∷ [ m ]) xs
-            m5-extract-strictly-smaller : ∀ {l l'} -> Vec (M5 A l') l -> Vec A (2 * l)
+            m5-extract-l : ∀ {l l'} -> Vec (M5 A l') l -> Vec (Indexed A l') (3 * l)
+            m5-extract-l {l = l} xs = subst (Vec _) (*-comm l 3) $ concat $ Data.Vec.map (λ (s₁ , s₂ , m , _ , _) → s₁ ∷ s₂ ∷ [ m ]) xs
+            m5-extract-r : ∀ {l l'} -> Vec (M5 A l') l -> Vec (Indexed A l') (3 * l)
+            m5-extract-r {l = l} xs = subst (Vec _) (*-comm l 3) $ concat $ Data.Vec.map (λ (_ , _ , m , l₁ , l₂) → l₁ ∷ l₂ ∷ [ m ]) xs
+            m5-extract-strictly-smaller : ∀ {l l'} -> Vec (M5 A l') l -> Vec (Indexed A l') (2 * l)
             m5-extract-strictly-smaller {l = l} xs = subst (Vec _) (*-comm l 2) $ concat $ Data.Vec.map m5-strictly-smaller xs
-            m5-extract-strictly-larger : ∀ {l l'} -> Vec (M5 A l') l -> Vec A (2 * l)
+            m5-extract-strictly-larger : ∀ {l l'} -> Vec (M5 A l') l -> Vec (Indexed A l') (2 * l)
             m5-extract-strictly-larger {l = l} xs = subst (Vec _) (*-comm l 2) $ concat $ Data.Vec.map m5-strictly-larger xs
             ix-half : ∀ {l-1} -> Vec A (suc l-1) -> Fin (suc l-1)
             ix-half {l-1 = l-1} _ = fromℕ< {m = ⌊ suc l-1 /2⌋} (n>0⇒⌊n/2⌋<n _)
@@ -479,42 +487,108 @@ module Median where
                     (toℕ-fromℕ< $ n>0⇒⌊n/2⌋<n ⌊ l-5 /5⌋)
                     (nℕ-ℕsuc⌊n/2⌋≡⌊n-1/2⌋ ⌊ l-5 /5⌋)
                 s
-            small : ∀ {l-5} -> let l = 5 + l-5 in Split (M5 A l) ⌊ l /5⌋ (_≡ ⌊ ⌊ l /5⌋ /2⌋) (_≡ ⌊ ⌊ l-5 /5⌋ /2⌋) -> Vec A (2 + 3 * (l / 10))
-            small {l-5 = l-5} s = subst (λ k -> Vec _ (2 + 3 * k)) (trans (Split.bound-smaller s) (⌊n/5/2⌋≡n/10 $ 5 + l-5)) $ (m5-strictly-smaller $ Indexed.value $ Split.median s) ++ (m5-extract-l $ Split.smaller s)
-            large : ∀ {l-5} -> let l = 5 + l-5 in Split (M5 A l) ⌊ l /5⌋ (_≡ ⌊ ⌊ l /5⌋ /2⌋) (_≡ ⌊ ⌊ l-5 /5⌋ /2⌋) -> Vec A (2 + 3 * (l-5 / 10))
-            large {l-5 = l-5} s = subst (λ k -> Vec _ (2 + 3 * k)) (trans (Split.bound-larger s) (⌊n/5/2⌋≡n/10 l-5)) $ (m5-strictly-larger $ Indexed.value $ Split.median s) ++ (m5-extract-r $ Split.larger s)
-            unk : ∀ {l-5} -> let l = 5 + l-5 in Split (M5 A l) ⌊ l /5⌋ (_≡ ⌊ ⌊ l /5⌋ /2⌋) (_≡ ⌊ ⌊ l-5 /5⌋ /2⌋) -> Vec A (2 * (l / 10) + 2 * (l-5 / 10))
+            small : ∀ {l-5} -> let l = 5 + l-5 in Split (M5 A l) ⌊ l /5⌋ (_≡ ⌊ ⌊ l /5⌋ /2⌋) (_≡ ⌊ ⌊ l-5 /5⌋ /2⌋) -> Vec (Indexed A l) (2 + 3 * (l / 10))
+            small {l-5 = l-5} s = subst (λ k -> Vec _ (2 + 3 * k)) (trans (Split.bound-smaller s) (⌊n/5/2⌋≡n/10 $ 5 + l-5)) $ (m5-strictly-smaller $ Indexed.value $ Split.median s) ++ (m5-extract-l $ Data.Vec.map Indexed.value $ Split.smaller s)
+            large : ∀ {l-5} -> let l = 5 + l-5 in Split (M5 A l) ⌊ l /5⌋ (_≡ ⌊ ⌊ l /5⌋ /2⌋) (_≡ ⌊ ⌊ l-5 /5⌋ /2⌋) -> Vec (Indexed A l) (2 + 3 * (l-5 / 10))
+            large {l-5 = l-5} s = subst (λ k -> Vec _ (2 + 3 * k)) (trans (Split.bound-larger s) (⌊n/5/2⌋≡n/10 l-5)) $ (m5-strictly-larger $ Indexed.value $ Split.median s) ++ (m5-extract-r $ Data.Vec.map Indexed.value $ Split.larger s)
+            unk : ∀ {l-5} -> let l = 5 + l-5 in Split (M5 A l) ⌊ l /5⌋ (_≡ ⌊ ⌊ l /5⌋ /2⌋) (_≡ ⌊ ⌊ l-5 /5⌋ /2⌋) -> Vec (Indexed A l) (2 * (l / 10) + 2 * (l-5 / 10))
             unk {l-5 = l-5} s = let l = 5 + l-5 in
                     subst (λ x → Vec _ (2 * (l / 10) + 2 * x))
                         (trans (Split.bound-larger s) (⌊n/5/2⌋≡n/10 l-5)) $
                     subst (λ x → Vec _ (2 * x + 2 * len (Split.larger s)))
                         (trans (Split.bound-smaller s) (⌊n/5/2⌋≡n/10 l)) $
-                    (m5-extract-strictly-larger $ Split.smaller s) ++ (m5-extract-strictly-smaller $ Split.larger s)
+                    (m5-extract-strictly-larger $ Data.Vec.map Indexed.value $ Split.smaller s) ++ (m5-extract-strictly-smaller $ Data.Vec.map Indexed.value $ Split.larger s)
 
 
 
-
-    ordselect-by f i xs = {!!}
-
-    {-
-    median-by : {l : ℕ} {X A : Set a} -> (X -> A) -> Vec X (suc l) -> DecTree A (Fin (suc l) × X) (10 * suc l)
-    ordselect : {l : ℕ} -> (i : Fin $ suc l) -> (xs : Vec A $ suc l) -> DecTree A (Fin (suc l) × A) (10 * suc l)
-
-    median-by _ (a ∷ [])                       = delay 10 $ return $ f0 , a
-    median-by f xs@(a ∷ b ∷ [])                = delay 19 (do i , m <- median2 (f a) (f b) ; return $ i , lookup xs i)
-    median-by f xs@(a ∷ b ∷ c ∷ [])            = delay 26 (do i , m <- median3 (f a) (f b) (f c) ; return $ i , lookup xs i)
-    median-by f xs@(a ∷ b ∷ c ∷ d ∷ [])        = delay 33 (do i , m <- median4 (f a) (f b) (f c) (f d) ; return $ i , lookup xs i)
-    median-by f xs@(a ∷ b ∷ c ∷ d ∷ e ∷ [])    = delay 40 (do i , m <- median5 (f a) (f b) (f c) (f d) (f e) ; return $ i , lookup xs i)
-    median-by {l = l} {A = A} f xs@(_ ∷ _ ∷ _ ∷ _ ∷ _ ∷ _ ∷ _) = select-median <&> λ (i , _) -> _,_ i (lookup xs i)
+    ordselect-eq : {ls ll lu lus lul n : ℕ} -> (i : Fin n) -> Indexed A n -> Vec (Indexed A n) (ls + lus) -> Vec (Indexed A n) (ll + lul) -> lus + lul ≡ lu -> 1 + ls + ll + lu ≡ n -> Data.Fin.toℕ i ≡ ls + lus -> Ordselect A n i
+    ordselect-eq {ls = ls} {ll = ll} {lu = lu} {lus = lus} {lul = lul} {n = suc n} i v smaller larger lus+lul≡lu 1+ls+ll+lu≡n i≡ls+lus =
+            record
+              { median = v
+              ; smaller = smaller
+              ; larger = larger
+              ; unknown = []
+              ; length-≡ = bound-≡
+              ; bound-smaller = sym i≡ls+lus
+              ; bound-larger = bound-l
+              }
         where
-            ix : Fin (len xs)
-            ix = Data.Fin.fromℕ< {m = ⌊ len xs /2⌋} (n>0⇒⌊n/2⌋<n _)
-            select-median : DecTree A (Fin (suc l) × A) (10 * suc l)
-            select-median = ordselect ix $ Data.Vec.map f xs
+            open ≡-Reasoning
+            open import Data.Fin using (_ℕ-ℕ_ ; toℕ)
+            bound-≡ : suc ls + lus + (ll + lul) + 0 ≡ suc n
+            bound-≡ = begin
+                    suc ls + lus + (ll + lul) + 0 ≡⟨ +-identityʳ _ ⟩
+                    suc ls + lus + (ll + lul)     ≡⟨ +-assoc (suc ls) lus (ll + lul) ⟩
+                    suc ls + (lus + (ll + lul))   ≡⟨ cong (suc ls +_) $ sym $ +-assoc lus ll lul  ⟩
+                    suc ls + (lus + ll + lul)     ≡⟨ cong (suc ls +_) $ cong (_+ lul) $ +-comm lus ll ⟩
+                    suc ls + (ll + lus + lul)     ≡⟨ cong (suc ls +_) $ +-assoc ll lus lul ⟩
+                    suc ls + (ll + (lus + lul))   ≡⟨ sym $ +-assoc (suc ls) ll (lus + lul) ⟩
+                    suc ls + ll + (lus + lul)     ≡⟨ cong (suc ls + ll +_) $ lus+lul≡lu ⟩
+                    suc ls + ll + lu              ≡⟨ 1+ls+ll+lu≡n ⟩
+                    suc n                         ∎
+            bound-l : ll + lul ≡ n ℕ-ℕ i
+            bound-l = begin
+                    ll + lul            ≡⟨ a+b≡c⇒b≡c-a (suc ls + lus) (ll + lul) (suc n) $ trans (sym $ +-identityʳ _) bound-≡ ⟩
+                    suc n ∸ (suc ls + lus)        ≡⟨⟩
+                    n ∸ (ls + lus)                ≡⟨ cong (n ∸_) $ sym $ i≡ls+lus ⟩
+                    n ∸ toℕ i                     ≡⟨ sym $ nℕ-ℕi≡n∸i n i ⟩
+                    n ℕ-ℕ i                       ∎
 
-    median : {l : ℕ} -> Vec A (suc l) -> DecTree A (Fin (suc l) × A) (10 * suc l)
-    median = median-by id
+    ordselect-lt : {X A : Set a} {ls ll lu lus lul n : ℕ} -> (X -> A) -> (i : Fin n) -> Indexed X n -> Vec (Indexed X n) (ls + lus) -> Vec (Indexed X n) (ll + lul) -> lus + lul ≡ lu -> 1 + ls + ll + lu ≡ n -> Data.Fin.toℕ i < ls + lus -> DecTree A (Ordselect X n i) (10 * (ls + lus))
+    ordselect-lt {ls = ls} {ll = ll} {lu = lu} {lus = lus} {lul = lul} {n = n@(suc n-1)} f i v smaller larger lus+lul≡lu 1+ls+ll+lu≡n i<ls+lus = height-≡ {!!} $ do
+            split <- recurse
+            let Diff k by i+k≡s = diff-i-s
+            return (record
+                      { median = Indexed.value $ Split.median split
+                      ; smaller = Data.Vec.map Indexed.value $ Split.smaller split
+                      ; larger = v ∷ (Data.Vec.map Indexed.value $ Split.larger split) ++ larger
+                      ; unknown = []
+                      ; length-≡ = bound-≡ split
+                      ; bound-smaller = {!!}
+                      ; bound-larger = {!!}
+                      })
+        where
+            open ≡-Reasoning
+            open import Data.Fin using (fromℕ< ; toℕ)
+            open import Data.Fin.Properties using (toℕ<n)
+            diff-i-s = diff i<ls+lus
+            i' : Fin (ls + lus)
+            i' = fromℕ< {m = toℕ i} i<ls+lus
+            recurse = let Diff k by i+k≡s = diff-i-s in
+                      subst (DecTree _ _) (cong (10 *_) i+k≡s) $
+                      ordselect-by (f ∘ Indexed.value) (subst Fin (sym i+k≡s) i') (subst (Vec _) (sym i+k≡s) smaller)
+            bound-≡ : (split : Ordselect (Indexed A n) (1 + toℕ i + Diff.k diff-i-s) (subst Fin (sym (Diff.pf diff-i-s)) $ fromℕ< i<ls+lus)) -> 1 + Split.l₁ split + (1 + Split.l₂ split + (ll + lul)) + 0 ≡ n
+            bound-≡ s = cong suc $ begin
+                    Split.l₁ s + (1 + Split.l₂ s + (ll + lul)) + 0  ≡⟨ +-identityʳ _ ⟩
+                    Split.l₁ s + (1 + Split.l₂ s + (ll + lul))      ≡⟨ sym $ +-assoc (Split.l₁ s) (1 + Split.l₂ s) (ll + lul)  ⟩
+                    Split.l₁ s + (1 + Split.l₂ s) + (ll + lul)      ≡⟨ cong (_+ (ll + lul)) $ sym $ +-assoc (Split.l₁ s) 1 (Split.l₂ s) ⟩
+                    Split.l₁ s + 1 + Split.l₂ s + (ll + lul)        ≡⟨ cong (λ x → x + Split.l₂ s + (ll + lul)) $ +-comm (Split.l₁ s) 1 ⟩
+                    1 + Split.l₁ s + Split.l₂ s + (ll + lul)        ≡⟨ cong (_+ (ll + lul)) $ sym $ +-identityʳ (1 + Split.l₁ s + Split.l₂ s) ⟩
+                    1 + Split.l₁ s + Split.l₂ s + 0 + (ll + lul)    ≡⟨ cong (λ x → 1 + Split.l₁ s + Split.l₂ s + x + (ll + lul)) $ sym $ a+b+c≡n∧a≡k∧b≡nℕ-ℕk⇒c≡0 (suc-injective $ Split.length-≡ s) (Split.bound-smaller s) (Split.bound-larger s) ⟩
+                    1 + Split.l₁ s + Split.l₂ s + Split.l₃ s + (ll + lul) ≡⟨ cong (_+ (ll + lul)) $ Split.length-≡ s ⟩
+                    1 + toℕ i + Diff.k diff-i-s + (ll + lul)        ≡⟨ cong (_+ (ll + lul)) $ Diff.pf diff-i-s ⟩
+                    ls + lus + (ll + lul)                           ≡⟨ +-double-comm' ls lus ll lul ⟩
+                    ls + ll + (lus + lul)                           ≡⟨ cong ((ls + ll) +_) lus+lul≡lu ⟩
+                    ls + ll + lu                                    ≡⟨ suc-injective 1+ls+ll+lu≡n ⟩
+                    n-1                                             ∎
 
+    ordselect-by f i xs = let iℕ = toℕ i in
+        height-≡ {!!} $ do
+            split <- quasi-median-by f xs
+            unk-smaller , unk-larger by us+ul≡l₃ <- delay-≤ (l₃≤4n/10+19 split) $ split-pivot-by (f ∘ Indexed.value) (Split.median split) $ Split.unknown split
+            let smaller = Split.smaller split ++ unk-smaller
+            let larger = Split.larger split ++ unk-larger
+            rec <- case ord iℕ (len smaller) of λ where
+                (lt pf) -> {!return $ ordselect-lt i (Split.median split) smaller larger us+ul≡l₃ (Split.length-≡ split) pf!}
+                (eq pf) -> return $ ordselect-eq i (Split.median split) smaller larger us+ul≡l₃ (Split.length-≡ split) pf
+                (gt pf) -> {!!}
+            {!!}
+        where
+            open Data.Fin using (toℕ)
+            l₃≤4n/10+19 : ∀ {l} -> (s : Quasi-Median A l) -> Split.l₃ s ≤ 4 * (l / 10) + 19
+            l₃≤4n/10+19 s = 1+a+b+c≡n∧a,b≥3n/10⇒c≤4n/10 (Split.length-≡ s) (Split.bound-smaller s) (Split.bound-larger s)
+
+{-}
     ordselect {A = A} {l = l-1} i xs = height-≡ {!!} $ do
             ms <- medians-of-5 xs
             _ , (iₚ , pivot) <- median-by Data.Product.proj₂ (subst (Vec _) (Data.Product.proj₂ $ ⌈1+n/5⌉>0 l-1) ms)
