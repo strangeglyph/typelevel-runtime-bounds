@@ -10,7 +10,7 @@ open import Function
 
 private
     variable
-        a b c : Level
+        a b c d : Level
         A : Set a
         B : Set b
 
@@ -21,6 +21,14 @@ len {n = n} _ = n
 subst2 : (P : A -> B -> Set c) {a₁ a₂ : A} {b₁ b₂ : B} -> a₁ ≡ a₂ -> b₁ ≡ b₂ -> P a₁ b₁ -> P a₂ b₂
 subst2 P refl refl p = p
 
+subst-≡ : (P : A -> Set a) -> {a : A} -> (eq : a ≡ a) -> (p : P a) -> subst P eq p ≡ p
+subst-≡ P refl p = refl
+
+subst-appl : {P : A -> Set a} -> (f : (a : A) -> P a -> B) -> {a b : A} -> (eq : a ≡ b) -> (x : P a) -> f a x ≡ f b (subst P eq x)
+subst-appl f eq x rewrite eq = refl
+
+cong₃ : {A : Set a} {B : Set b} {C : Set c} {D : Set d} -> (f : A -> B -> C -> D) -> {a1 a2 : A} -> a1 ≡ a2 -> {b1 b2 : B} -> b1 ≡ b2 -> {c1 c2 : C} -> c1 ≡ c2 -> f a1 b1 c1 ≡ f a2 b2 c2
+cong₃ f refl refl refl = refl
 
 data _1?+⟨_⟩ (A : ℕ -> Set a) (n : ℕ) : Set a where
     +0 : A n       -> A 1?+⟨ n ⟩
