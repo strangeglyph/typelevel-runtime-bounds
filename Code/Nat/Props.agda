@@ -13,7 +13,7 @@ open import Nat.Props.Times public
 open import Nat.Props.Minus public
 open import Nat.Props.Max public
 open import Nat.Props.Div public
-
+open import Nat.Props.Log public
 
 data Ord : ℕ -> ℕ -> Set where
     lt : {x y : ℕ} -> x < y -> Ord x y

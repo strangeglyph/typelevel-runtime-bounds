@@ -78,19 +78,25 @@ a⌊n/2⌋+a⌈n/2⌉≡a*n a n = begin
         open ≡-Reasoning
 
 
+5⌊n/5⌋≤n : ∀ n -> 5 * ⌊ n /5⌋ ≤ n
+5⌊n/5⌋≤n zero = z≤n
+5⌊n/5⌋≤n (suc zero) = z≤n
+5⌊n/5⌋≤n (suc (suc zero)) = z≤n
+5⌊n/5⌋≤n (suc (suc (suc zero))) = z≤n
+5⌊n/5⌋≤n (suc (suc (suc (suc zero)))) = z≤n
+5⌊n/5⌋≤n (suc (suc (suc (suc (suc n-5))))) = let n = 5 + n-5 in begin
+        5 * ⌊ n /5⌋          ≡⟨⟩
+        5 * suc ⌊ n-5 /5⌋    ≡⟨ *-suc 5 ⌊ n-5 /5⌋ ⟩
+        5 + 5 * ⌊ n-5 /5⌋    ≤⟨ +-monoʳ-≤ 5 $ 5⌊n/5⌋≤n n-5 ⟩
+        5 + n-5              ≡⟨⟩
+        n                    ∎
+    where
+        open ≤-Reasoning
 
-10⌊n/5⌋≤2n : ∀ n -> 10 * ⌊ n /5⌋ ≤ 2 * n
-10⌊n/5⌋≤2n zero = z≤n
-10⌊n/5⌋≤2n (suc zero) = z≤n
-10⌊n/5⌋≤2n (suc (suc zero)) = z≤n
-10⌊n/5⌋≤2n (suc (suc (suc zero))) = z≤n
-10⌊n/5⌋≤2n (suc (suc (suc (suc zero)))) = z≤n
-10⌊n/5⌋≤2n (suc (suc (suc (suc (suc n-5))))) = let n = 5 + n-5 in begin
-        10 * ⌊ n /5⌋         ≡⟨⟩
-        10 * suc ⌊ n-5 /5⌋   ≡⟨ *-suc 10 ⌊ n-5 /5⌋ ⟩
-        10 + 10 * ⌊ n-5 /5⌋  ≤⟨ +-monoʳ-≤ 10 (10⌊n/5⌋≤2n n-5) ⟩
-        10 + 2 * n-5         ≡⟨⟩
-        2 * 5 + 2 * n-5      ≡⟨ sym $ *-distribˡ-+ 2 5 n-5 ⟩
-        2 * n                ∎
+a*5*⌊n/5⌋≤a*n : ∀ a n -> a * 5 * ⌊ n /5⌋ ≤ a * n
+a*5*⌊n/5⌋≤a*n a n = begin
+        a * 5 * ⌊ n /5⌋       ≡⟨ *-assoc a 5 ⌊ n /5⌋ ⟩
+        a * (5 * ⌊ n /5⌋)     ≤⟨ *-monoʳ-≤ a $ 5⌊n/5⌋≤n n ⟩
+        a * n                 ∎
     where
         open ≤-Reasoning
