@@ -100,3 +100,11 @@ a*5*⌊n/5⌋≤a*n a n = begin
         a * n                 ∎
     where
         open ≤-Reasoning
+
+⌊l/5⌋<l : ∀ l-1 -> ⌊ suc l-1 /5⌋ < suc l-1
+⌊l/5⌋<l zero = s≤s z≤n
+⌊l/5⌋<l (suc zero) = s≤s z≤n
+⌊l/5⌋<l (suc (suc zero)) = s≤s z≤n
+⌊l/5⌋<l (suc (suc (suc zero))) = s≤s z≤n
+⌊l/5⌋<l (suc (suc (suc (suc zero)))) = s≤s (s≤s z≤n)
+⌊l/5⌋<l (suc (suc (suc (suc (suc l-6))))) = ≤-step $ ≤-step $ ≤-step $ ≤-step $ s≤s (⌊l/5⌋<l l-6)

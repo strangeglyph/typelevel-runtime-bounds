@@ -6,12 +6,14 @@ open import Data.Vec hiding (_>>=_)
 open import Data.Nat
 open import Data.Nat.Properties
 open import Data.Nat.DivMod
+open import Data.Nat.Induction using (<-wellFounded)
 open import Data.Product
 open import Data.Sum
 open import Data.Fin using (Fin)
 
 open import Relation.Binary.PropositionalEquality hiding ([_])
 open import Function
+open import Induction.WellFounded using (Acc)
 
 open import Util
 open import DecTree
@@ -206,13 +208,13 @@ private
 Quasi-Median : Set a -> ℕ -> Set a
 Quasi-Median A l = Split A l (λ x → suc x ≥ 3 * (l / 10)) (λ x → suc x ≥ 3 * (l / 10))
 
-quasi-median-by : {A X : Set a} -> {l-1 : ℕ} -> let l = suc l-1 in (X -> A) -> Vec X l -> DecTree A (Quasi-Median X l) (9 * l)
+quasi-median-by : {A X : Set a} -> {l-1 : ℕ} -> let l = suc l-1 in Acc _<_ l -> (X -> A) -> Vec X l -> DecTree A (Quasi-Median X l) (9 * l)
 
 
 Ordselect : Set a -> (l : ℕ) -> (i : Fin l) -> Set a
 Ordselect A l i = Split A l (_≡ Data.Fin.toℕ i) (_≡ l Data.Fin.ℕ-ℕ (Data.Fin.raise 1 i))
 
-ordselect-by : {A X : Set a} {l-1 : ℕ} -> let l = suc l-1 in (X -> A) -> (i : Fin l) -> (xs : Vec X l) -> DecTree A (Ordselect X l i) (35 * l)
+ordselect-by : {A X : Set a} {l-1 : ℕ} -> let l = suc l-1 in Acc _<_ l -> (X -> A) -> (i : Fin l) -> (xs : Vec X l) -> DecTree A (Ordselect X l i) (35 * l)
 
 
 private
@@ -283,7 +285,7 @@ private
         where
             open ≡-Reasoning
 
-    quasi-median-by _ (a ∷ []) = delay 9 $ return $ record
+    quasi-median-by _ _ (a ∷ []) = delay 9 $ return $ record
                                     { median = index f0 a
                                     ; smaller = []
                                     ; larger = []
@@ -292,7 +294,7 @@ private
                                     ; bound-smaller = z≤n
                                     ; bound-larger = z≤n
                                     }
-    quasi-median-by f (a ∷ b ∷ []) = delay 17 $ median2-by f a b <&> λ (med , l) → record
+    quasi-median-by _ f (a ∷ b ∷ []) = delay 17 $ median2-by f a b <&> λ (med , l) → record
                                     { median = med
                                     ; smaller = []
                                     ; larger = [ l ]
@@ -301,7 +303,7 @@ private
                                     ; bound-smaller = z≤n
                                     ; bound-larger = z≤n
                                     }
-    quasi-median-by f (a ∷ b ∷ c ∷ []) = delay 24 $ median3-by f a b c <&> λ (s , med , l) → record
+    quasi-median-by _ f (a ∷ b ∷ c ∷ []) = delay 24 $ median3-by f a b c <&> λ (s , med , l) → record
                                     { median = med
                                     ; smaller = [ s ]
                                     ; larger = [ l ]
@@ -310,7 +312,7 @@ private
                                     ; bound-smaller = z≤n
                                     ; bound-larger = z≤n
                                     }
-    quasi-median-by f (a ∷ b ∷ c ∷ d ∷ []) = delay 31 $ median4-by f a b c d <&> λ (s , med , l₁ , l₂) → record
+    quasi-median-by _ f (a ∷ b ∷ c ∷ d ∷ []) = delay 31 $ median4-by f a b c d <&> λ (s , med , l₁ , l₂) → record
                                     { median = med
                                     ; smaller = [ s ]
                                     ; larger = l₁ ∷ [ l₂ ]
@@ -319,14 +321,14 @@ private
                                     ; bound-smaller = z≤n
                                     ; bound-larger = z≤n
                                     }
-    quasi-median-by {l-1 = l-1} f xs@(_ ∷ _ ∷ _ ∷ _ ∷ _ ∷ xss) = let l = suc l-1 in
+    quasi-median-by {l-1 = l-1} (Acc.acc more) f xs@(_ ∷ _ ∷ _ ∷ _ ∷ _ ∷ xss) = let l = suc l-1 in
         height-≡ (sym $ *-distribʳ-+ l 2 7) $
         height-≡ (+-identityʳ (2 * l + 7 * l)) $
         height-≡ (sym $ +-assoc (2 * l) (7 * l) 0 ) $
         do
             medians ms overflow <- medians-of-5-by f xs
             let ix = ix-half ms
-            med-of-meds' <- delay-≤ (a*5*⌊n/5⌋≤a*n 7 l) $ ordselect-by (f ∘ m5-extract-value) ix ms
+            med-of-meds' <- delay-≤ (a*5*⌊n/5⌋≤a*n 7 l) $ ordselect-by (more ⌊ l /5⌋ $ ⌊l/5⌋<l _) (f ∘ m5-extract-value) ix ms
             let med-of-meds = simplify-med-split {v = ms} med-of-meds'
             return $ record
                    { median = m5-extract-indexed $ Indexed.value $ Split.median med-of-meds
@@ -423,8 +425,8 @@ private
                     n ∸ toℕ i                     ≡⟨ sym $ nℕ-ℕi≡n∸i n i ⟩
                     n ℕ-ℕ i                       ∎
 
-    ordselect-lt : {X A : Set a} {ls ll lu lus lul n : ℕ} -> (X -> A) -> (i : Fin n) -> Indexed X n -> Vec (Indexed X n) (ls + lus) -> Vec (Indexed X n) (ll + lul) -> lus + lul ≡ lu -> 1 + ls + ll + lu ≡ n -> Data.Fin.toℕ i < ls + lus -> DecTree A (Ordselect X n i) (35 * (ls + lus))
-    ordselect-lt {ls = ls} {ll = ll} {lu = lu} {lus = lus} {lul = lul} {n = n@(suc n-1)} f i v smaller larger lus+lul≡lu 1+ls+ll+lu≡n i<ls+lus = height-≡ (+-identityʳ _) $ do
+    ordselect-lt : {X A : Set a} {ls ll lu lus lul n : ℕ} -> Acc _<_ n -> (X -> A) -> (i : Fin n) -> Indexed X n -> Vec (Indexed X n) (ls + lus) -> Vec (Indexed X n) (ll + lul) -> lus + lul ≡ lu -> 1 + ls + ll + lu ≡ n -> Data.Fin.toℕ i < ls + lus -> DecTree A (Ordselect X n i) (35 * (ls + lus))
+    ordselect-lt {ls = ls} {ll = ll} {lu = lu} {lus = lus} {lul = lul} {n = n@(suc n-1)} (Acc.acc more) f i v smaller larger lus+lul≡lu 1+ls+ll+lu≡n i<ls+lus = height-≡ (+-identityʳ _) $ do
             split <- recurse
             let Diff k by i+k≡s = diff-i-s
             return (record
@@ -443,11 +445,23 @@ private
             diff-i-s = diff i<ls+lus
             i' : Fin (ls + lus)
             i' = fromℕ< {m = toℕ i} i<ls+lus
+
+            1+i+k<n : 1 + toℕ i + Diff.k diff-i-s < n
+            1+i+k<n = ≤-begin
+                    2 + toℕ i + Diff.k diff-i-s   ≤-≡⟨ cong suc $ Diff.pf diff-i-s ⟩
+                    suc ls + lus                    ≤⟨ m≤m+n (suc ls + lus) (ll + lul) ⟩
+                    suc ls + lus + (ll + lul)     ≤-≡⟨ +-double-comm' (suc ls) lus ll lul ⟩
+                    suc ls + ll + (lus + lul)     ≤-≡⟨ cong (suc ls + ll +_) lus+lul≡lu ⟩
+                    1 + ls + ll + lu              ≤-≡⟨ 1+ls+ll+lu≡n ⟩
+                    n                             ≤-∎
+                where
+                    open ≤-Reasoning renaming (begin_ to ≤-begin_ ; _≡⟨_⟩_ to _≤-≡⟨_⟩_ ; _∎ to _≤-∎)
+
             RecurseSelect : Set a ->  Set a
             RecurseSelect A = Ordselect (Indexed A n) (1 + toℕ i + Diff.k diff-i-s) (subst Fin (sym $ Diff.pf diff-i-s) i')
             recurse = let Diff k by i+k≡s = diff-i-s in
                     subst (DecTree _ _) (cong (35 *_) i+k≡s) $
-                    ordselect-by (f ∘ Indexed.value) (subst Fin (sym i+k≡s) i') (subst (Vec _) (sym i+k≡s) smaller)
+                    ordselect-by (more (1 + toℕ i + k) 1+i+k<n) (f ∘ Indexed.value) (subst Fin (sym i+k≡s) i') (subst (Vec _) (sym i+k≡s) smaller)
 
             bound-l : (split : Ordselect (Indexed A n) (1 + toℕ i + Diff.k diff-i-s) (subst Fin (sym $ Diff.pf diff-i-s) i')) -> 1 + Split.l₂ split + (ll + lul) ≡ n-1 ℕ-ℕ i
             bound-l s = begin
@@ -518,8 +532,8 @@ private
                     ls + ll + lu                                    ≡⟨ suc-injective 1+ls+ll+lu≡n ⟩
                     n-1                                             ∎
 
-    ordselect-gt : {X A : Set a} {ls ll lu lus lul n : ℕ} -> (X -> A) -> (i : Fin n) -> Indexed X n -> Vec (Indexed X n) (ls + lus) -> Vec (Indexed X n) (ll + lul) -> lus + lul ≡ lu -> 1 + ls + ll + lu ≡ n -> ls + lus < Data.Fin.toℕ i -> DecTree A (Ordselect X n i) (35 * (ll + lul))
-    ordselect-gt {X = X} {A = A} {ls = ls} {ll = ll} {lu = lu} {lus = lus} {lul = lul} {n = n} f i v smaller larger lus+lul≡lu 1+ls+ll+lu≡n ls+lus<i = height-≡ (+-identityʳ _) $ do
+    ordselect-gt : {X A : Set a} {ls ll lu lus lul n : ℕ} -> Acc _<_ n -> (X -> A) -> (i : Fin n) -> Indexed X n -> Vec (Indexed X n) (ls + lus) -> Vec (Indexed X n) (ll + lul) -> lus + lul ≡ lu -> 1 + ls + ll + lu ≡ n -> ls + lus < Data.Fin.toℕ i -> DecTree A (Ordselect X n i) (35 * (ll + lul))
+    ordselect-gt {X = X} {A = A} {ls = ls} {ll = ll} {lu = lu} {lus = lus} {lul = lul} {n = n} (Acc.acc more) f i v smaller larger lus+lul≡lu 1+ls+ll+lu≡n ls+lus<i = height-≡ (+-identityʳ _) $ do
             split <- recurse
             return (record
                         { median = Indexed.value $ Split.median split
@@ -575,8 +589,17 @@ private
             i'≤k'+k : toℕ i' ≤ k' + k
             i'≤k'+k = ≤-pred $ ≤-trans (toℕ<n i') (≤-reflexive n-j≡1+k'+k)
 
+            1+k'+k<n : 1 + k' + k < n
+            1+k'+k<n = ≤-begin
+                    2 + k' + k                 ≤-≡⟨ cong suc $ sym ll+lul≡1+k'+k ⟩
+                    1 + ll + lul                 ≤⟨ +-monoʳ-≤ 1 $ m≤n+m (ll + lul) (ls + lus) ⟩
+                    1 + ls + lus + (ll + lul)  ≤-≡⟨ 1+ls+lus+ll+lul≡n ⟩
+                    n                          ≤-∎
+                where
+                    open ≤-Reasoning renaming (begin_ to ≤-begin_ ; _≡⟨_⟩_ to _≤-≡⟨_⟩_ ; _∎ to _≤-∎)
+
             recurse = height-≡ (cong (35 *_) $ sym ll+lul≡1+k'+k) $
-                        ordselect-by (f ∘ Indexed.value) (subst Fin n-j≡1+k'+k i') (subst (Vec _) ll+lul≡1+k'+k larger)
+                        ordselect-by (more (1 + k' + k) 1+k'+k<n) (f ∘ Indexed.value) (subst Fin n-j≡1+k'+k i') (subst (Vec _) ll+lul≡1+k'+k larger)
 
             bound-≡ : (split : Ordselect (Indexed X n) (1 + k' + k) (subst Fin n-j≡1+k'+k i')) -> 2 + ls + lus + Split.l₁ split + Split.l₂ split + 0 ≡ n
             bound-≡ s = begin
@@ -658,7 +681,7 @@ private
             xs' = subst (Vec _) (n≡toℕi+1+nℕ-ℕ1+i) xs
 
 
-ordselect-by {l-1 = l-1} f i xs with ≤-total (suc l-1) 8000
+ordselect-by {l-1 = l-1} wf-acc f i xs with ≤-total (suc l-1) 8000
 ... | inj₁ l≤8000 = delay-≤ nlogn≤35n $ split-sorted i <$> sorted
     where
         open ≤-Reasoning
@@ -674,7 +697,7 @@ ordselect-by {l-1 = l-1} f i xs with ≤-total (suc l-1) 8000
 ... | inj₂ l>8000 =
         let iℕ = toℕ i in
         height-≡ (sym $ *-distribʳ-+ l 9 26) $ do
-            split <- quasi-median-by f xs
+            split <- quasi-median-by wf-acc f xs
             let l₃≤l = ≤-trans (m≤n+m (Split.l₃ split) (1 + Split.l₁ split + Split.l₂ split)) (≤-reflexive $ Split.length-≡ split)
             unk-smaller , unk-larger by us+ul≡l₃ <- delay-≤ l₃≤l $ split-pivot-by (f ∘ Indexed.value) (Split.median split) $ Split.unknown split
             let smaller = Split.smaller split ++ unk-smaller
@@ -683,9 +706,9 @@ ordselect-by {l-1 = l-1} f i xs with ≤-total (suc l-1) 8000
             let ul≤l₃ = ≤-trans (m≤n+m (len unk-larger) (len unk-smaller)) (≤-reflexive us+ul≡l₃)
 
             case ord iℕ (len smaller) of λ where
-                (lt pf) -> delay-≤ (smallerRuntimeBound split (len unk-smaller) us≤l₃) $ ordselect-lt {ls = Split.l₁ split} f i (Split.median split) smaller larger us+ul≡l₃ (Split.length-≡ split) pf
+                (lt pf) -> delay-≤ (smallerRuntimeBound split (len unk-smaller) us≤l₃) $ ordselect-lt {ls = Split.l₁ split} wf-acc f i (Split.median split) smaller larger us+ul≡l₃ (Split.length-≡ split) pf
                 (eq pf) -> delay-≤ z≤n $ return $ ordselect-eq {ls = Split.l₁ split} i (Split.median split) smaller larger us+ul≡l₃ (Split.length-≡ split) pf
-                (gt pf) -> delay-≤ (largerRuntimeBound split (len unk-larger) ul≤l₃) $ ordselect-gt {ls = Split.l₁ split} f i (Split.median split) smaller larger us+ul≡l₃ (Split.length-≡ split) pf
+                (gt pf) -> delay-≤ (largerRuntimeBound split (len unk-larger) ul≤l₃) $ ordselect-gt {ls = Split.l₁ split} wf-acc f i (Split.median split) smaller larger us+ul≡l₃ (Split.length-≡ split) pf
     where
         open Data.Fin using (toℕ)
         l = suc l-1
@@ -751,7 +774,7 @@ ordselect-by {l-1 = l-1} f i xs with ≤-total (suc l-1) 8000
             where
                 open ≤-Reasoning
                 2485≤2500 : 2485 ≤ 2500
-                2485≤2500 = m≤m+n 2485 15 
+                2485≤2500 = m≤m+n 2485 15
 
 
         smallerRuntimeBound : (s : Quasi-Median A l) -> (us : ℕ) -> us ≤ Split.l₃ s -> 35 * (Split.l₁ s + us) ≤ 25 * l
@@ -768,8 +791,17 @@ ordselect-by {l-1 = l-1} f i xs with ≤-total (suc l-1) 8000
         largerRuntimeBound s ul ul≤l₃ = begin
                 35 * (Split.l₂ s + ul)          ≤⟨ *-monoʳ-≤ 35 $ +-monoʳ-≤ (Split.l₂ s) ul≤l₃ ⟩
                 35 * (Split.l₂ s + Split.l₃ s)  ≤⟨ *-monoʳ-≤ 35 $ l₂+l₃≤7n/10+9 s ⟩
-                35 * (7 * (l / 10) + 9)         ≤⟨ {!*-monoʳ-≤ 35 7*l/10+9≤71*l/100!} ⟩
+                35 * (7 * (l / 10) + 9)         ≤⟨ *-monoʳ-≤ 35 7*l/10+9≤71*l/100 ⟩
                 35 * (71 * (l / 100))           ≤⟨ 35*71*l/100≤25l ⟩
                 25 * l                          ∎
             where
                 open ≤-Reasoning
+
+
+
+ordselect : {l : ℕ} -> Vec A l -> (i : Fin l) -> DecTree A (Ordselect A l i) (35 * l)
+ordselect {l = zero} _ ()
+ordselect {l = l@(suc l-1)} xs i = ordselect-by (<-wellFounded l) id i xs
+
+median : {l-1 : ℕ} -> let l = suc l-1 in Vec A l -> DecTree A (Indexed A l) (35 * l)
+median {l-1 = l-1} xs = Split.median <$> ordselect xs (Data.Fin.fromℕ< $ n>0⇒⌊n/2⌋<n l-1)
