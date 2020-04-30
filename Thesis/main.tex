@@ -1,0 +1,25 @@
+% !TeX spellcheck = en_US
+% !TeX program = lualatex
+
+\documentclass[12pt]{report}
+\input{Configuration/0-root.tex}
+
+\title{
+	{Modelling Resource Constraints in a Dependently Typed Language}
+}
+
+\author{Lia Schütze}
+
+\begin{document}
+    \maketitle
+
+    \begin{abstract}
+	   The rise of dependently typed language offers the opportunity to formally verify resource constraints such as memory usage of data structures and run-time bounds of algorithms. We investigate how to leverage the type system to encode correct-by-construction upper bounds for the run-time of different algorithms.
+	\end{abstract}
+
+	\tableofcontents
+
+	\input{Chapters/00-introduction.tex}
+
+	\printbibliography
+\end{document}

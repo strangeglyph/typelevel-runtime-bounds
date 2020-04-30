@@ -1,0 +1,156 @@
+% !TeX root = ../main.tex
+% !TeX spellcheck = en_US
+
+\chapter{Introduction}
+In programming languages, \emph{values} are typically associated with \emph{types} that describe the type of information the value stores\footnote{Though not all languages are typed. Especially early and low-level languages -- for example most assembly languages -- operate on untyped data.}. The \emph{type system} of a language determines what assignments are valid and which conversions between types are acceptable. A type system's rules are usually presented in the form of deduction rules, where an expression type checks if it is deduceable.
+
+An rule might for example state that assignments are only permitted if the left- and right-hand side have the same type. As a deduction rule, the rule would look like this:
+
+\begin{prooftree}
+    \AxiomC{$\tau : \star \in \Gamma$}
+    \AxiomC{$v : \tau \in \Gamma$}
+    \AxiomC{$w : \tau \in \Gamma$}
+    \TrinaryInfC{$\Gamma \vdash v \coloneqq w$}
+\end{prooftree}
+
+Or in normal language: The assignment $v \coloneqq w$ is valid under a context $\Gamma$ if
+\begin{itemize}
+    \setlength\itemsep{-0.4em}
+    \item $\tau$ is a type (written $\tau : \star$) we know,
+    \item $v$ is of type $\tau$ (written $v : \tau$) and
+    \item $w$ is of type $\tau$.
+\end{itemize}
+
+A program is said to \emph{type check} if it follows all the rules of the type system. Type checking may occur statically (when the code is compiled) or dynamically (when the code is executed).
+
+Strong type systems increase the reliability of software. They inform the programmer about the type of information stored in a variable and prevent the accidental mixing of values of incompatible types, such as using a string where an integer would be expected. The type system can also control the operational semantics of a program, such as Rust's ownership model to restrict memory aliasing \cite{matsakis2014rust}. Additionally, more expressive type systems allow programmers to encode their own constraints to better match the their application logic. This includes using types to represent different measurement units \cite{units-in-r} and using affine types to model use-at-most-once semantics \cite{walker2005substructural}.
+
+Well-known type systems include the family of Hindley-Milner type systems, which form the foundation for Haskell's type system \cite{haskelldesignreport}
+\todo{Expand this}
+
+\section{The Curry-Howard Correspondence}
+Mathematically, a direct connection between type systems and formal logic exists. The link was discovered by Haskell Curry and William Alvin Howard over several years and first formalized in full by Howard in 1969 \cite{howard1969formulaeastypes}.
+
+The initial discovery made by Curry in 1934 was that the structure of proofs in propositional logic closely mirrored that of programs in typed combinatory logic (or equivalently, simply typed lambda calculus) \cite{curry1934functionality}. We get the following mapping:
+
+\begin{table}[H]
+    \begin{center}
+    \begin{tabular}{ll|ll}
+                    \multicolumn{2}{r|}{\textbf{Simply Typed Lambda Calculus}}  & \multicolumn{2}{l}{\textbf{Propositional Logic}} \\ \hline
+        Type        & \texttt{A}            & Proposition   & $A$ \\
+        Variable    & \texttt{a : A}        & Axiom         & $A$ \\
+        Function    & \texttt{f : A -> B}   & Implication   & $A \to B$ \\
+        Application & \texttt{f a}          & Modus Ponens  & $A \to B, A \vdash B$ \\
+        Product     & \texttt{A × B}        & Conjunction   & $A \land B$ \\
+        Sum         & \texttt{A | B}        & Disjunction   & $A \lor B$ \\
+        Unit Type   & \texttt{()}           & Tautology     & \\
+        Bottom Type & \texttt{0}            & False Statement & \\
+        Map into bottom type & \texttt{f : A -> 0}   & Negation       & $\lnot A$
+    \end{tabular}
+    \end{center}
+\caption{Curry-Howard correspondence for propositional logic}
+\label{tab:curryhowardprop}
+\end{table}
+
+However what happens if we now consider predicate logic instead of propositional logic? Predicate logic introduces \emph{predicates} and \emph{quantifiers} for which we need to find type theoretic analogues. \todo{cite howard, de brujin}
+
+Predicates fill a similar role to propositions, and like propositions we are going to represent them with types. However, the truth value of predicates depends on their argument, so we cannot find a single type to represent the entire predicate. Instead, we construct a family of types indexed by the potential arguments to the predicate. In other words, if we have some predicate $p$ taking an argument of type $A$, then for each $a \oftype A$ we have a type $P(a)$ representing the truth value of the predicate for $a$. This indexed family of types is called an \emph{dependent type}.
+
+Consider now a formula of the form $\exists x \oftype A.~p(x)$. A constructive proof of this statement consists of a some element $x \oftype A$ and a constructive proof that $p(x)$ holds. Or from the type theoretic perspective: A tuple $(x , y)$ of a witness $x \oftype A$ and an element $y \oftype P(x)$ representing the proof of $p(x)$. This is called the \emph{dependent sum type} or $\Sigma$\emph{-type} and written as $\sum_{a \oftype A}P(a)$. This notations comes from the fact that the size of the type $\sum_{a \oftype A}P(a)$ is equal to $\sum_{a \oftype A} \abs{P(a)}$. Observe that for the non-dependent special case that $P(a) = P$ for all $a$, this simplifies to $\abs A * \abs B$ and is analogous to the non-dependent product type $A \times B$.
+
+Lastly we have formulas of the form $\forall x \oftype A.~p(x)$. A constructive proof of statements like this would require a constructive proof of $p(x)$ given any arbitrary $x$. In the type theoretic world we do this by giving a total function $(x \oftype A) \to P(x)$. This is called a \emph{dependent function}, the \emph{dependent product type} or $\Pi$\emph{-type} and written as $\Pi_{a \oftype A} P(a)$. This notation comes from the fact that for every $a \oftype A$ we can pick any proof object $b \oftype P(a)$ in our mapping and thus the total number of functions $(x \oftype A) \to P(x)$ is $\Pi_{a \oftype A} \abs{P(a)}$. Again, observe that for the non-dependent case this simplifies to ${\abs{P}}^{\abs{A}}$, the usual non-dependent function space.
+
+\section{Agda: Dependent Types In Practice}
+Agda is a functional, dependently typed language originally developed by Ulf Norell \cite{norell:thesis}. Its syntax is similar to Haskell, though significantly different in some spots, especially where dependent types are concerned. Here's how a simple datatype declarations looks like:
+
+\begin{lstlisting}[caption={Datatype definitions},label={lst:tutorial:datatypes}]
+-- Inductive declaration of natural numbers
+data bNat : Set where
+    zero : bNat
+    suc  : bNat -> bNat
+\end{lstlisting}
+
+Compare this to the Haskell definition of the same datatype:
+
+\begin{lstlisting}[caption={Peano Numbers in Haskell},label={lst:haskell:peano},language=haskell]
+data Nat = Zero | Suc Nat
+\end{lstlisting}
+
+Two things stand out. For one, constructors for a datatype are written in a function signature style (\texttt{suc} takes a \texttt{$\mathbb N$} and returns a new \texttt{$\mathbb N$}). Second, the datatype itself is annotated with a type (\texttt{Set}).
+
+The latter is Agda's answer to Russel's Paradox. If a type is a set -- the collection of all members of that type -- then what is the "type" of all types? It can't be a type itself or we run into Russel's Paradox again. Instead, Agda sorts these types-of-types (and types-of-types-of-types) into a hierarchy: A value is a member of a type, a type is a member of \texttt{Set 0} -- though the 0 can be omitted --, \texttt{Set 0} is a member of \texttt{Set 1} and so on. Each of these sets is closed under the formation of (dependent) functions and pairs.
+
+The set level of a newly declared datatype is then one larger than the maximum of all its constructors, since it needs to "contain" all values formed by use of these constructors. For example:
+
+\begin{itemize}
+    \setlength\itemsep{-0.4em}
+    \item \texttt{zero : $\mathbb N$} has no arguments. Its is a value.
+    \item \texttt{suc : $\mathbb N \to \mathbb N$}  has one argument, a value. Its level is zero.
+    \item A hypothetical constructor \texttt{foo : (A : Set a) -> B} has one argument, a sort of level $a$. Its level is $a + 1$.
+\end{itemize}
+
+Datatypes can be \emph{parameterized} and \emph{indexed}. The two notations are largely analogous and only differ in that all constructors of a datatype must share the same parameter, but may use different indices. Parameters are automatically brought into scope for constructors, indices are not. Consider for example the following type of vectors, parameterized by the type of values it contains and indexed by its length:
+
+\begin{lstlisting}[caption={A Simple Vector Type},label={lst:tutorial:vec}]
+data Vec (A : Set) : bNat -> Set where
+    []     : Vec A zero
+    append : (l : bNat) -> A -> Vec A l -> Vec A (suc l)
+\end{lstlisting}
+
+However having to explicitly pass as an argument any value that may later be used in a dependent type quickly gets cumbersome. Agda therefore has support for implicit arguments which may be omitted by the programmer when calling a function or constructor. Agda will then try to find the correct value for that parameter using unification. Rewriting our vector example:
+
+\begin{lstlisting}[caption={A Simple Vector Type, Take Two},label={lst:tutorial:vec:2}]
+data Vec (A : Set) : bNat -> Set where
+    []     : Vec A zero
+    append : {l : bNat} -> A -> Vec A l -> Vec A (suc l)
+\end{lstlisting}
+
+In fact, Agda also has support to infer the \emph{type} of a parameter, though this is largely notational sugar for writing type signatures.
+
+\begin{lstlisting}[caption={A Simple Vector Type, Take Three},label={lst:tutorial:vec:3}]
+data Vec (A : Set) : bNat -> Set where
+    []     : Vec A zero
+    append : forall {l} -> A -> Vec A l -> Vec A (suc l)
+\end{lstlisting}
+
+Finally, mirroring Haskell's \texttt{:} operator, we'd like an infix operator for our \texttt{append} constructor.
+
+\begin{lstlisting}[caption={A Simple Vector Type, Take Four},label={lst:tutorial:vec:4}]
+data Vec (A : Set) : bNat -> Set where
+    []   : Vec A zero
+    _::_ : \forall {l} -> A -> Vec A l -> Vec A (suc l)
+\end{lstlisting}
+
+In this case, the underscores are placeholders and are replaced by the explicit parameters of the function at call time: \texttt{\_::\_ x xs} becomes \texttt{x :: xs}. Agda not only supports this for infix operators, but also postfix and and even mixfix operators. This means that for example \texttt{if\_then\_else\_ : $\forall$ {A} -> Bool -> A -> A -> A} is a valid function.
+
+The usual functional aspects like pattern matching and higher order functions work as expected:
+
+\begin{lstlisting}[caption={Functions},label={lst:tutorial:functional}]
+_+_ : bNat -> bNat -> bNat
+zero + n    = n
+(suc m) + n = suc (m + n)
+
+foldr : forall {A B} -> forall {l} -> (A -> B -> B) -> B -> Vec A l -> B
+foldr _ initial []        = initial
+foldr f initial (x :: xs) = f x (foldr xs f initial)
+
+sum : forall {l} -> Vec bNat l -> bNat
+sum = foldr (_+_) 0
+\end{lstlisting}
+
+\subsection{Termination Checking}
+Agda blurs the line between compile time and run time. Since any value may be used as a dependent parameter, the type checker may need to evaluate arbitrary chunks of code at compile time. To ensure that type checking remains decidable, Agda enforces strict termination of recursive functions.
+
+By default Agda checks for termination by way of structural recursion: For a function with a single argument, a recursive call is permitted if it only uses a strict sub-expression of the argument in the call. If there's more than one argument to the function, recursion is submitted if strict lexicographical ordering on the size of the arguments can be found (i.e. one argument either strictly decreases or it remains equal but the remainder of the arguments is strictly decreasing).
+
+This recursion structure is often applicable, but there are times where it is insufficient. Consider for example quicksort, where we first split the vector into elements smaller and larger than a pivot and then recurse on these two vectors. Since "vector of elements smaller than the pivot" is not a strict sub-expression of our vector, it does not fit into Agda's recursion scheme.
+
+For cases like this, Agda offers us well-founded recursion. The rough idea is as follows: Pick some parameter and define an ordering on it. Show that it contains no infinite descending chains. Then at every call site, show that the parameter has decreased. For our quicksort example from above we might pick the length of our vector and show that after removing the pivot element from our vector, any split into a smaller and a larger part produces vectors of strictly smaller length.
+
+\subsection{Equality}
+\begin{lstlisting}[caption={Equality in Agda},label={lst:tutorial:equality}]
+data _\equiv_ {a} {A : Set a} (x : A) : A -> Set where
+    refl : x \equiv x
+\end{lstlisting}
+
+In other words, we can only show the trivial equality. More complicated proofs of equality can be built from this basic block: transitivity, symmetry and congruence all become trivial the moment we pattern match on the constructor of \texttt{\_$\equiv$\_} and Agda realizes that the two sides of the equality are definitionally equal.
