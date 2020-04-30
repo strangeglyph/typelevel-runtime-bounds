@@ -1,3 +1,15 @@
 *.agdai
 Literatur/
 Literatur_Alt/
+PITS/
+Paper Summary.txt
+*.log
+*.aux
+*.synctex.gz
+*.pdf
+*.bbl
+*.bcf
+*.blg
+*.run.xml
+*.toc
+*.out
