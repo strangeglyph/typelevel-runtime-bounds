@@ -24,7 +24,7 @@
 }
 \makeatother
 
-\newcommand{\emphstyle}{\bf\color{solarized-blue}}
+\newcommand{\symbolstyle}{\color{solarized-blue}}
 \lstset{
     inputencoding       = utf8,
     showspaces          = false,
@@ -42,7 +42,7 @@
     aboveskip           = 1.5em,
     backgroundcolor     = {\color{solarized-background}},
     numberstyle         = {\footnotesize\ttfamily\color{darkgray}},
-    emphstyle           = \emphstyle,
+    emphstyle           = {\color{solarized-blue}},
     commentstyle        = {\it\ttfamily\color{solarized-comment}},
     stringstyle         = {\mdseries\ttfamily\color{solarized-cyan}},
     keywordstyle        = {\bfseries\ttfamily\color{solarized-green}},
@@ -52,7 +52,6 @@
 \lstdefinelanguage{agda}{
     morekeywords        = {data,where,module,open,import,using,hiding},
     morekeywords        = {renaming,private,variable,record,with},
-    emph                = {:,->},
     morecomment         = [l]{--},
     morecomment         = [s]{\{-}{-\}},
     literate            = {bNat}{{\(\mathbb{N}\)}}1
@@ -67,10 +66,10 @@
                         {8}{{{\ProcessDigit{8}}}}1
                         {9}{{{\ProcessDigit{9}}}}1
                         {<=}{{\(\leq\)}}1
-                        {->}{{{\emphstyle\(\to\)}}}1
-                        {:}{{{\emphstyle{:}}}}1
+                        {->}{{{\symbolstyle\(\to\)}}}1
+                        {:}{{{\symbolstyle{:}}}}1
                         {forall}{{\(\forall\)}}1
-                        {\\equiv}{{\(\equiv\)}}1,
+                        {\\equiv}{{{\symbolstyle\(\equiv\)}}}1,
 }
 \lstset{language=agda}
 
