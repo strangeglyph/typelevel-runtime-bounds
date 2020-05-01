@@ -63,7 +63,7 @@ Lastly we have formulas of the form $\forall x \oftype A.~p(x)$. A constructive 
 \section{Agda: Dependent Types In Practice}
 Agda is a functional, dependently typed language originally developed by Ulf Norell \cite{norell:thesis}. Its syntax is similar to Haskell, though significantly different in some spots, especially where dependent types are concerned. Here's how a simple datatype declarations looks like:
 
-\begin{lstlisting}[caption={Datatype definitions},label={lst:tutorial:datatypes}]
+\begin{lstlisting}[caption={Datatype definitions},label={lst:tutorial:datatypes},emph={zero,suc}]
 -- Inductive declaration of natural numbers
 data bNat : Set where
     zero : bNat
@@ -72,7 +72,7 @@ data bNat : Set where
 
 Compare this to the Haskell definition of the same datatype:
 
-\begin{lstlisting}[caption={Peano Numbers in Haskell},label={lst:haskell:peano},language=haskell]
+\begin{lstlisting}[caption={Peano Numbers in Haskell},label={lst:haskell:peano},language=haskell,emph={Zero,Suc}]
 data Nat = Zero | Suc Nat
 \end{lstlisting}
 
@@ -91,7 +91,7 @@ The set level of a newly declared datatype is then one larger than the maximum o
 
 Datatypes can be \emph{parameterized} and \emph{indexed}. The two notations are largely analogous and only differ in that all constructors of a datatype must share the same parameter, but may use different indices. Parameters are automatically brought into scope for constructors, indices are not. Consider for example the following type of vectors, parameterized by the type of values it contains and indexed by its length:
 
-\begin{lstlisting}[caption={A Simple Vector Type},label={lst:tutorial:vec}]
+\begin{lstlisting}[caption={A Simple Vector Type},label={lst:tutorial:vec},emph={Vec,append}]
 data Vec (A : Set) : bNat -> Set where
     []     : Vec A zero
     append : (l : bNat) -> A -> Vec A l -> Vec A (suc l)
@@ -99,7 +99,7 @@ data Vec (A : Set) : bNat -> Set where
 
 However having to explicitly pass as an argument any value that may later be used in a dependent type quickly gets cumbersome. Agda therefore has support for implicit arguments which may be omitted by the programmer when calling a function or constructor. Agda will then try to find the correct value for that parameter using unification. Rewriting our vector example:
 
-\begin{lstlisting}[caption={A Simple Vector Type, Take Two},label={lst:tutorial:vec:2}]
+\begin{lstlisting}[caption={A Simple Vector Type, Take Two},label={lst:tutorial:vec:2},emph={Vec,append}]
 data Vec (A : Set) : bNat -> Set where
     []     : Vec A zero
     append : {l : bNat} -> A -> Vec A l -> Vec A (suc l)
@@ -107,7 +107,7 @@ data Vec (A : Set) : bNat -> Set where
 
 In fact, Agda also has support to infer the \emph{type} of a parameter, though this is largely notational sugar for writing type signatures.
 
-\begin{lstlisting}[caption={A Simple Vector Type, Take Three},label={lst:tutorial:vec:3}]
+\begin{lstlisting}[caption={A Simple Vector Type, Take Three},label={lst:tutorial:vec:3},emph={Vec,append}]
 data Vec (A : Set) : bNat -> Set where
     []     : Vec A zero
     append : forall {l} -> A -> Vec A l -> Vec A (suc l)
@@ -115,7 +115,7 @@ data Vec (A : Set) : bNat -> Set where
 
 Finally, mirroring Haskell's \texttt{:} operator, we'd like an infix operator for our \texttt{append} constructor.
 
-\begin{lstlisting}[caption={A Simple Vector Type, Take Four},label={lst:tutorial:vec:4}]
+\begin{lstlisting}[caption={A Simple Vector Type, Take Four},label={lst:tutorial:vec:4},emph={Vec}]
 data Vec (A : Set) : bNat -> Set where
     []   : Vec A zero
     _::_ : forall {l} -> A -> Vec A l -> Vec A (suc l)
@@ -125,7 +125,7 @@ In this case, the underscores are placeholders and are replaced by the explicit 
 
 The usual functional aspects like pattern matching and higher order functions work as expected:
 
-\begin{lstlisting}[caption={Functions},label={lst:tutorial:functional}]
+\begin{lstlisting}[caption={Functions},label={lst:tutorial:functional},emph={foldr,sum}]
 _+_ : bNat -> bNat -> bNat
 zero + n    = n
 (suc m) + n = suc (m + n)
@@ -148,9 +148,28 @@ This recursion structure is often applicable, but there are times where it is in
 For cases like this, Agda offers us well-founded recursion. The rough idea is as follows: Pick some parameter and define an ordering on it. Show that it contains no infinite descending chains. Then at every call site, show that the parameter has decreased. For our quicksort example from above we might pick the length of our vector and show that after removing the pivot element from our vector, any split into a smaller and a larger part produces vectors of strictly smaller length.
 
 \subsection{Equality}
-\begin{lstlisting}[caption={Equality in Agda},label={lst:tutorial:equality}]
+\todo{Intro}
+
+\begin{lstlisting}[caption={Equality in Agda},label={lst:tutorial:equality},emph={refl}]
 data _\equiv_ {a} {A : Set a} (x : A) : A -> Set where
     refl : x \equiv x
 \end{lstlisting}
 
-In other words, we can only show the trivial equality. More complicated proofs of equality can be built from this basic block: transitivity, symmetry and congruence all become trivial the moment we pattern match on the constructor of \texttt{\_$\equiv$\_} and Agda realizes that the two sides of the equality are definitionally equal.
+In other words, we can only show the trivial equality. This may seem restrictive, but more complicated proofs of equality can be built from this basic block: transitivity, symmetry and congruence all become trivial the moment we pattern match on the constructor of \texttt{\_$\equiv$\_} and Agda realizes that the two sides of the equality are definitionally equal:
+
+\begin{lstlisting}[caption={Reasoning in Agda},label={lst:tutorial:reasoning
+},emph={sym,cong,trans,subst}]
+sym : {x y : A} -> x \equiv y -> y \equiv x
+sym refl = refl
+
+trans : {x y z : A} -> x \equiv y -> y \equiv z -> x \equiv z
+trans refl refl = refl
+
+cong : {x y : A} -> (f : A -> B) -> x \equiv y -> f x \equiv f y
+cong f refl = refl
+
+subst : {x y : A} -> (P : A -> Set a) -> x \equiv y -> P x -> P y
+subst P refl p = p
+\end{lstlisting}
+
+\todo{Concluding remarks?}
