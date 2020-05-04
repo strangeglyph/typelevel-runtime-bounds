@@ -2,4 +2,14 @@
 % !TeX spellcheck = en_US
 
 \chapter{Introduction}
-\todo{Introduction}
+Algorithms are usually developed conceptually first, their properties proven on paper and then implemented in code.
+
+However, a lot of the assumptions and guarantees of these proofs are omitted in code and a careless implementation may diverge from these assumptions, losing the guarantees and becoming incorrect.
+
+There has been a push towards embedding these conditions inside the program so that they are automatically verified when the code is compiled. On the one hand, we have tests, which ensure that the algorithm is well-behaved on some predetermined inputs. On the other hand, we have types, which aim at making certain classes of incorrect behavior impossible to express in code.
+
+Of particular interest --and elusive so far -- are resource constraints. This is a broad class of guarantees concerning limited computationally relevant resources. This includes limiting the number of locks held by part of the program, showing that there is a limit on the maximum number of concurrently open sockets, but also constraints on the amount of memory used by the program as well as the topic this thesis is focusing on: bounds on the running time of algorithms.
+
+There have been previous attempts at developing frameworks to prove certain upper bounds on running time (eg. \cite{danielsson:2008:time-complexity-analysis}, \cite{nipkow:2017:verified-root-balanced-trees}). However these approaches are usually not formally correct, relying on the programmer to correctly indicate where a time step should be counted. Instead what we would like is for any program expressible in our framework to take at most as many steps (asymptotically) as indicated by the type bound.
+
+Van Laarhoven has a promising approach based on hiding the implementation of comparison from the algorithm and using the number of these comparisons as a measure of the running time \cite{laarhoven:2013:correctness-sorting}. We will expand on this approach and show that it is feasible to implement a wide range of algorithms in this framework.
