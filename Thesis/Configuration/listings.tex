@@ -1,0 +1,74 @@
+%!TEX root = ../main.tex
+
+\makeatletter
+% Literate styling of numbers
+\newcommand{\ProcessDigit}[1]
+{%
+    \ifnum\lst@mode=\lst@Pmode\relax%
+    {\ttfamily\color{solarized-cyan} #1}%
+    \else
+    #1%
+    \fi
+}
+
+% Local extensions to literate mapping
+\def\addToLiterate#1{\edef\lst@literate{\unexpanded\expandafter{\lst@literate}\unexpanded{#1}}}
+\lst@Key{add to literate}{}{\addToLiterate{#1}}
+\makeatother
+
+\newcommand{\symbolstyle}{\color{solarized-blue}}
+
+\lstset{
+    inputencoding       = utf8,
+    showspaces          = false,
+    showstringspaces    = false,
+    numbers             = left,
+    belowcaptionskip    = \bigskipamount,
+    captionpos          = b,
+    frame               = none,
+    escapeinside        = {(*}{*)},
+    frame               = single,
+    rulecolor           = \color{solarized-background-dark},
+    framextopmargin     = 1pt,
+    framexleftmargin    = 1pt,
+    aboveskip           = 1.5em,
+    backgroundcolor     = {\color{solarized-background}},
+    numberstyle         = {\footnotesize\ttfamily\color{darkgray}},
+    emphstyle           = {\color{solarized-blue}},
+    commentstyle        = {\it\ttfamily\color{solarized-comment}},
+    stringstyle         = {\mdseries\ttfamily\color{solarized-cyan}},
+    keywordstyle        = {\bfseries\ttfamily\color{solarized-green}},
+    basicstyle          = {\ttfamily\color{solarized-default}},
+}
+
+\lstdefinelanguage{agda}{
+    morekeywords        = {data,where,module,open,import,using,hiding},
+    morekeywords        = {renaming,private,variable,record,with},
+    morecomment         = [l]{--},
+    morecomment         = [s]{\{-}{-\}},
+    literate            = {bNat}{{\(\mathbb{N}\)}}1
+                        {0}{{{\ProcessDigit{0}}}}1
+                        {1}{{{\ProcessDigit{1}}}}1
+                        {2}{{{\ProcessDigit{2}}}}1
+                        {3}{{{\ProcessDigit{3}}}}1
+                        {4}{{{\ProcessDigit{4}}}}1
+                        {5}{{{\ProcessDigit{5}}}}1
+                        {6}{{{\ProcessDigit{6}}}}1
+                        {7}{{{\ProcessDigit{7}}}}1
+                        {8}{{{\ProcessDigit{8}}}}1
+                        {9}{{{\ProcessDigit{9}}}}1
+                        {->}{{{\symbolstyle\(\to\)}}}2
+                        {:}{{{\symbolstyle{:}}}}1
+                        {forall}{{\(\forall\)}}1
+                        {\\equiv}{{{\symbolstyle\(\equiv\)}}}1
+                        {\ \\lub\ }{{{\symbolstyle\(\sqcup\)}}}3
+                        {\\lub}{{\(\sqcup\)}}1
+                        {\\lambda}{{{\symbolstyle\(\lambda\)}}}1
+                        {-\\leq}{{{\symbolstyle-\(\leq\)}}}2
+                        {\ \\leq\ }{{{\symbolstyle\(\leq\)}}}3
+                        {\\leq?}{{{\symbolstyle\(\leq\)?}}}2
+                        {\\\^r}{{{\(^r\)}}}1
+                        {\\\_1}{{\(_1\)}}1
+                        {\\\_2}{{\(_2\)}}1,
+}
+\lstset{language=agda}

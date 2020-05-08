@@ -13,65 +13,6 @@
 % abs value symbols as delimiter operator
 \DeclarePairedDelimiter\abs{\lvert}{\rvert}
 
-\makeatletter
-\newcommand{\ProcessDigit}[1]
-{%
-    \ifnum\lst@mode=\lst@Pmode\relax%
-    {\ttfamily\color{solarized-cyan} #1}%
-    \else
-    #1%
-    \fi
-}
-\makeatother
-
-\newcommand{\symbolstyle}{\color{solarized-blue}}
-\lstset{
-    inputencoding       = utf8,
-    showspaces          = false,
-    showstringspaces    = false,
-    numbers             = left,
-    belowcaptionskip    = \bigskipamount,
-    captionpos          = b,
-    frame               = none,
-    mathescape          = true,
-    escapeinside        = {(*}{*)},
-    frame               = single,
-    rulecolor           = \color{solarized-background-dark},
-    framextopmargin     = 1pt,
-    framexleftmargin    = 1pt,
-    aboveskip           = 1.5em,
-    backgroundcolor     = {\color{solarized-background}},
-    numberstyle         = {\footnotesize\ttfamily\color{darkgray}},
-    emphstyle           = {\color{solarized-blue}},
-    commentstyle        = {\it\ttfamily\color{solarized-comment}},
-    stringstyle         = {\mdseries\ttfamily\color{solarized-cyan}},
-    keywordstyle        = {\bfseries\ttfamily\color{solarized-green}},
-    basicstyle          = {\ttfamily\color{solarized-default}},
-}
-
-\lstdefinelanguage{agda}{
-    morekeywords        = {data,where,module,open,import,using,hiding},
-    morekeywords        = {renaming,private,variable,record,with},
-    morecomment         = [l]{--},
-    morecomment         = [s]{\{-}{-\}},
-    literate            = {bNat}{{\(\mathbb{N}\)}}1
-                        {0}{{{\ProcessDigit{0}}}}1
-                        {1}{{{\ProcessDigit{1}}}}1
-                        {2}{{{\ProcessDigit{2}}}}1
-                        {3}{{{\ProcessDigit{3}}}}1
-                        {4}{{{\ProcessDigit{4}}}}1
-                        {5}{{{\ProcessDigit{5}}}}1
-                        {6}{{{\ProcessDigit{6}}}}1
-                        {7}{{{\ProcessDigit{7}}}}1
-                        {8}{{{\ProcessDigit{8}}}}1
-                        {9}{{{\ProcessDigit{9}}}}1
-                        {<=}{{\(\leq\)}}1
-                        {->}{{{\symbolstyle\(\to\)}}}1
-                        {:}{{{\symbolstyle{:}}}}1
-                        {forall}{{\(\forall\)}}1
-                        {\\equiv}{{{\symbolstyle\(\equiv\)}}}1,
-}
-\lstset{language=agda}
 
 % For todonotes
 \setlength{\marginparwidth}{3cm}
