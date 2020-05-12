@@ -95,15 +95,12 @@ private
     merge-sort-step : {X A : Set a} -> {l : ℕ} -> (X -> A) -> Vec X l -> Acc _<_ l -> DecTree A (Vec X l) (l * ⌈log₂ l ⌉)
     merge-sort-step _ [] _ = return []
     merge-sort-step _ (x ∷ []) _ = return [ x ]
-    merge-sort-step {X = X} {A = A} {l = l} f xs@(_ ∷ _ ∷ _) (Acc.acc more) = Data.Product.uncurry recurse $ split xs
-        where
-            recurse : Vec X ⌈ l /2⌉ -> Vec X ⌊ l /2⌋ -> DecTree A (Vec X l) (l * ⌈log₂ l ⌉)
-            recurse left right =
-                   subst (λ x -> DecTree A (Vec X x) (l * ⌈log₂ l ⌉)) (⌈n/2⌉+⌊n/2⌋≡n l) $
-                   delay-≤ (log₂n/2-bound _) $
-                           merge-sort-step f left (more ⌈ l /2⌉ (n>1⇒⌈n/2⌉<n _)) >>=
-                   λ lr -> merge-sort-step f right (more ⌊ l /2⌋ (n>0⇒⌊n/2⌋<n _))>>=
-                   λ rr -> merge-by f lr rr
+    merge-sort-step {X = X} {A = A} {l = l} f xs@(_ ∷ _ ∷ _) (Acc.acc more) =
+        delay-≤ (log₂n/2-bound _) $ do
+            let (left , right) = split xs
+            sort-left <- merge-sort-step f left (more ⌈ l /2⌉ (n>1⇒⌈n/2⌉<n _))
+            sort-right <- merge-sort-step f right (more ⌊ l /2⌋ (n>0⇒⌊n/2⌋<n _))
+            subst (Vec X) (⌈n/2⌉+⌊n/2⌋≡n l) <$> merge-by f sort-left sort-right
 
 merge-sort : {l : ℕ} -> Vec A l -> VecTree A l (l * ⌈log₂ l ⌉)
 merge-sort {l = l} xs = merge-sort-step id xs $ <-wellFounded l
