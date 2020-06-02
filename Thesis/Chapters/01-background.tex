@@ -141,11 +141,77 @@ sum = foldr (_+_) 0
 \subsection{Termination Checking}
 Agda blurs the line between compile time and run time. Since any value may be used as a dependent parameter, the type checker may need to evaluate arbitrary chunks of code at compile time. To ensure that type checking remains decidable, Agda enforces strict termination of recursive functions.
 
-By default Agda checks for termination by way of structural recursion: For a function with a single argument, a recursive call is permitted if it only uses a strict sub-expression of the argument in the call. If there's more than one argument to the function, recursion is submitted if strict lexicographical ordering on the size of the arguments can be found (i.e. one argument either strictly decreases or it remains equal but the remainder of the arguments is strictly decreasing).
+By default Agda checks for termination by way of structural recursion. As a first intuition, we can consider a recursive call to be permitted if it only uses a strict sub-expression of the argument in the call. If there's more than one argument to the function, recursion is submitted if strict lexicographical ordering on the size of the arguments can be found (i.e. one argument either strictly decreases or it remains equal but the remainder of the arguments is strictly decreasing).
 
-This recursion structure is often applicable, but there are times where it is insufficient. Consider for example quicksort, where we first split the vector into elements smaller and larger than a pivot and then recurse on these two vectors. Since "vector of elements smaller than the pivot" is not a strict sub-expression of our vector, it does not fit into Agda's recursion scheme.
+This recursion structure is often applicable, but there are times where it is insufficient. Consider for example the following implementation of a base 2 logarithm (setting $\log_2 0 \coloneqq 0$ for simplicity's sake):
 
-For cases like this, Agda offers us well-founded recursion. The rough idea is as follows: Pick some parameter and define an ordering on it. Show that it contains no infinite descending chains. Then at every call site, show that the parameter has decreased. For our quicksort example from above we might pick the length of our vector and show that after removing the pivot element from our vector, any split into a smaller and a larger part produces vectors of strictly smaller length.
+\begin{lstlisting}[caption={Base 2 Logarithm},label={lst:tutorial:log},emph={log}]
+\lfloorlog\_2_\rfloor : bNat -> bNat
+\lfloorlog\_2 0 \rfloor = 0
+\lfloorlog\_2 1 \rfloor = 0
+\lfloorlog\_2 n@(suc (suc _)) = \lfloorlog\_2 \lfloor n /2\rfloor \rfloor
+\end{lstlisting}
+
+Even though this function obviously terminates, \texttt{$\lfloor$ n /2$\rfloor$} is too complex to analyze and Agda is not able to show termination.
+
+The type-theoretic answer to this is well-founded recursion. This means that we can define an ordering on our parameters so that there is no infinite descending chain of parameters in our recursive calls. It follows that any call to our function necessarily terminates. However, in constructive mathematics a negated existential such as "no infinite descending chain" is not a very useful statement -- all it allows us is to derive a contradiction if we are given an infinite descending chain \cite{mietek:2020:minimal}. A more constructive way to talk about this concept is the notion of \emph{accessibility}. Elements are defined as accessible inductively according to the following rule:
+
+\begin{prooftree}
+    \AxiomC{$\forall y < x~:~y~\mathrm{accessible}$}
+    \UnaryInfC{$x~\mathrm{accessible}$}
+\end{prooftree}
+
+We call $Acc(A, <)$ the accessible core of $A$. If $A = Acc(A, <)$, i.e. all of $A$ is accessible, we can show that $<$ is well-founded:
+
+\begin{lemma}
+    Let $x \in A$ be accessible. Then all descending chains starting with $x$ are finite.
+\end{lemma}
+
+\begin{proof}
+    We show this by transfinite induction on the depth of the deduction tree showing that $x$ is accessible, $d$.
+
+    \emph{$d = 0$}: Then $x$ must not have any predecessors. There can be no non-trivial chain starting at $x$.
+
+    \emph{$d = d' + 1$ for some successor ordinal $d'$ or $d' = 0$}: Then every $y < x$ must have a proof depth less than $d$. By the inductive hypothesis, all chains starting at $y$ are finite and therefore all chains $x > y > \ldots$ are finite as well.
+
+    \emph{$d = \omega + 1$ for some limit ordinal $\omega$}: No proof tree can have a depth of exactly $\omega$ \todo{show this}. Thus every $y < x$ must have a depth $\lambda_y + n_y$ for some limit ordinal $\lambda_y < \omega$ (possibly 0). Then by the inductive hypothesis all chains starting at $y$ are finite and therefore all chains $x > y > \ldots$ are finite as well.
+\end{proof}
+
+The accessibility relationship is formalized in Agda as follows:
+
+\begin{lstlisting}[caption={The Acc Type},label={lst:tutorial:acc},emph={Acc,acc}]
+data Acc (_<_ : Rel A l) (x : A) : Set (a \lub l) where
+    acc : (\forall y -> y < x -> Acc _<_ y) -> Acc _<_ x
+\end{lstlisting}
+
+In normal words, we can show an element \texttt{x} accessible under some relation \texttt{\_<\_} if we can provide a function that shows any predecessor of \texttt{x} to be accessible.
+
+We can leverage this type to show that our log function terminates:
+
+\begin{lstlisting}[caption={Base 2 Logarithm},label={lst:tutorial:log:2},emph={log,step},add to literate={s\\leqs}{{s\(\leq\)s}}3{z\\leqn}{{z\(\leq\)n}}3{<=>\\leq}{{<\(\Rightarrow\leq\)}}3]
+n>0=>\lfloorn/2\rfloor<n : (n : bNat) -> \lfloor suc n /2\rfloor < suc n
+n>0=>\lfloorn/2\rfloor<n 0 = s\leqs z\leqn
+n>0=>\lfloorn/2\rfloor<n 1 = s\leqs (s\leqs z\leqn)
+n>0=>\lfloorn/2\rfloor<n (suc (suc n)) = s\leqs (s\leqs (<=>\leq (n>0=>\lfloorn/2\rfloor<n n)))
+
+\lfloorlog\_2_\rfloor : bNat -> bNat
+\lfloorlog\_2 n \rfloor = log\_2-step n (<-wellFounded n)
+  where
+    log\_2-step (n : bNat) -> Acc _<_ n -> bNat
+    log\_2-step 0 _ = 0
+    log\_2-step 1 _ = 0
+    log\_2-step n@(suc n-1@(suc _)) (acc wf) = log\_2-step \lfloor n /2\rfloor
+        (wf n (n>0=>\lfloorn/2\rfloor<n n-1))
+\end{lstlisting}
+
+In line 1-4, we are showing that $\lfloor \frac n 2 \rfloor$ is strictly smaller than $n$ for $n > 0$. This is a prerequisite for our termination proof.
+
+In line 9 we parameterize our log function by an additional parameter that formalizes the fact that we are using the well-foundedness of the natural numbers under $<$ in general and the accessibility of our parameter \texttt{n} in general to show termination.
+
+In line 13 we are using the fact that $\lfloor \frac n 2 \rfloor < n$ must be accessible as well to generate the accessibility proof of it and pass that to the recursive call.
+
+Why does the termination checker permit this recursion scheme? After all, \texttt{wf n \_} is not a sub-expression of \texttt{acc wf}. However, Agda does not only consider \texttt{x} $<$ \texttt{C x} for all constructors \texttt{C}, but also \texttt{f x} $\leq$ \texttt{f} for all functions \texttt{f}. One can show this ordering on terms to be well-founded as well \cite{abel:2002:predicative-analysis-structural-recursion}, which gives justification to the termination checker.
+
 
 \subsection{Equality}
 \todo{Intro}
