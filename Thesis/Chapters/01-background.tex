@@ -139,6 +139,7 @@ sum = foldr (_+_) 0
 \end{lstlisting}
 
 \subsection{Termination Checking}
+\label{sec:termination-checking}
 Agda blurs the line between compile time and run time. Since any value may be used as a dependent parameter, the type checker may need to evaluate arbitrary chunks of code at compile time. To ensure that type checking remains decidable, Agda enforces strict termination of recursive functions.
 
 By default Agda checks for termination by way of structural recursion. As a first intuition, we can consider a recursive call to be permitted if it only uses a strict sub-expression of the argument in the call. If there's more than one argument to the function, recursion is submitted if strict lexicographical ordering on the size of the arguments can be found (i.e. one argument either strictly decreases or it remains equal but the remainder of the arguments is strictly decreasing).
