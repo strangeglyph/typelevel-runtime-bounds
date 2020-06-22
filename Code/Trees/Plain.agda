@@ -10,7 +10,8 @@ open import Function
 open import Relation.Binary.PropositionalEquality
 
 open import DecTree
-open import NatProp
+open import Nat.Props
+open import Nat.Props.Max
 open import Util
 
 
@@ -118,12 +119,12 @@ remove-max {A = A} {s = s} {h = h} (Fork l x r@(Fork _ _ _)) with remove-max r
 
 merge : {s s' h h' : ℕ} -> Tree A s h -> Tree A s' h' -> Tree A (s + s') 1?+⟨ h ⊔ h' ⟩
 merge Leaf r             = +0 r
-merge l@(Fork ll x lr) r with remove-min l
-...         | m , +1 l' = +1 $ Fork l' x r
+merge l@(Fork _ _ _) r with remove-max l
+...         | m , +1 l' = +1 $ Fork l' m r
 ...         | m , +0 l' with ord (height l) (height r)
-...                 | lt pf = +1 $ tree-⊔-max-< (Fork l' x r) pf
-...                 | eq pf = +1 $ tree-⊔-max-≡ (Fork l' x r) pf
-...                 | gt pf = +0 $ tree-⊔-max-> (Fork l' x r) pf
+...                 | lt pf = +1 $ tree-⊔-max-< (Fork l' m r) pf
+...                 | eq pf = +1 $ tree-⊔-max-≡ (Fork l' m r) pf
+...                 | gt pf = +0 $ tree-⊔-max-> (Fork l' m r) pf
 
 
 RemovalTree : Set a -> ℕ -> ℕ -> Set a
