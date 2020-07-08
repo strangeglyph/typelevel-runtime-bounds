@@ -27,7 +27,7 @@
     belowcaptionskip    = \bigskipamount,
     captionpos          = b,
     frame               = none,
-    escapeinside        = {(*}{*)},
+    escapeinside        = {(***}{***)},
     frame               = single,
     rulecolor           = \color{solarized-background-dark},
     framextopmargin     = 1pt,
@@ -45,6 +45,7 @@
 \lstdefinelanguage{agda}{
     morekeywords        = {data,where,module,open,import,using,hiding},
     morekeywords        = {renaming,private,variable,record,with},
+    morekeywords        = {constructor,field},
     morecomment         = [l]{--},
     morecomment         = [s]{\{-}{-\}},
     literate            = {bNat}{{\(\mathbb{N}\)}}1
@@ -58,10 +59,10 @@
                         {7}{{{\ProcessDigit{7}}}}1
                         {8}{{{\ProcessDigit{8}}}}1
                         {9}{{{\ProcessDigit{9}}}}1
-                        {->}{{{\symbolstyle\(\to\)}}}2
+                        {\ ->\ }{{{\symbolstyle\(\to\)}}}4
                         {:}{{{\symbolstyle{:}}}}1
                         {forall}{{\(\forall\)}}1
-                        {\\equiv}{{{\symbolstyle\(\equiv\)}}}1
+                        {\ \\equiv\ }{{{\symbolstyle\(\equiv\)}}}3
                         {\ \\lub\ }{{{\symbolstyle\(\sqcup\)}}}3
                         {\\lub}{{\(\sqcup\)}}1
                         {\\lambda}{{{\symbolstyle\(\lambda\)}}}1
@@ -69,8 +70,10 @@
                         {\ \\leq\ }{{{\symbolstyle\(\leq\)}}}3
                         {\\leq?}{{{\symbolstyle\(\leq\)?}}}2
                         {\\\^r}{{{\(^r\)}}}1
+                        {\\\^l}{{{\(^l\)}}}1
                         {\\\_1}{{\(_1\)}}1
                         {\\\_2}{{\(_2\)}}1
+                        {\\\_3}{{\(_3\)}}1
                         {\\lceil}{{\(\lceil\)}}1
                         {\\rceil}{{\(\rceil\)}}1
                         {\\lfloor}{{\(\lfloor\)}}1
@@ -78,6 +81,17 @@
                         {\\llog}{{\(\lceil\)log\(_2\)}}5
                         {\\ndiv2ceil}{{\(\lceil\)n/2\(\rceil\)}}5
                         {\\ndiv2floor}{{\(\lfloor\)n/2\(\rfloor\)}}5
-                        {=>}{{\(\Rightarrow\)}}1,
+                        {=>}{{\(\Rightarrow\)}}1
+                        {s\\leqs}{{s\(\leq\)s}}3
+                        {z\\leqn}{{z\(\leq\)n}}3
+                        {height-\\equiv}{{{\symbolstyle height-\(\equiv\)}}}8
+                        {delay-\\leq}{{{\symbolstyle delay-\(\leq\)}}}7
+                        {\\equiv}{{\(\equiv\)}}1
+                        {\\leq}{{\(\leq\)}}1
+                        {\\geq}{{\(\geq\)}}1
+                        {\\langle}{{\(\langle\)}}1
+                        {\\rangle}{{\(\rangle\)}}1
+                        {\\circ}{{\(\circ\)}}1
+                        {\\qed}{{\(\qed\)}}1,
 }
 \lstset{language=agda}
