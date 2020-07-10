@@ -197,7 +197,7 @@ private
     medians-of-5-by _ (a ∷ b ∷ c ∷ d ∷ [])  = delay 8 $ return $ medians [] $ (index f0 a) ∷ (index f1 b) ∷ (index f2 c) ∷ [ index f3 d ]
     medians-of-5-by f (a ∷ b ∷ c ∷ d ∷ e ∷ xs) = let n = len xs in
                                             height-≡ (sym $ *-distribˡ-+ 2 5 n) $
-                                            height-≡ (cong (10 +_) $ +-identityʳ (n + (n + 0))) $ do
+                                            height-≡ (cong (10 +_) $ +-identityʳ (2 * n)) $ do
                                             m5 <- delay 3 $ median5-by f a b c d e
                                             ms <- medians-of-5-by f xs
                                             return $ m5 ::: ms
@@ -327,9 +327,9 @@ private
         height-≡ (sym $ +-assoc (2 * l) (7 * l) 0 ) $
         do
             medians ms overflow <- medians-of-5-by f xs
-            let ix = ix-half ms
+            let ix = ix-half ⌊ len xss /5⌋
             med-of-meds' <- delay-≤ (a*5*⌊n/5⌋≤a*n 7 l) $ ordselect-by (more ⌊ l /5⌋ $ ⌊l/5⌋<l _) (f ∘ m5-extract-value) ix ms
-            let med-of-meds = simplify-med-split {v = ms} med-of-meds'
+            let med-of-meds = simplify-med-split med-of-meds'
             return $ record
                    { median = m5-extract-indexed $ Indexed.value $ Split.median med-of-meds
                    ; smaller = small med-of-meds
@@ -367,10 +367,10 @@ private
             m5-extract-strictly-larger : ∀ {l l'} -> Vec (M5 A l') l -> Vec (Indexed A l') (2 * l)
             m5-extract-strictly-larger {l = l} xs = subst (Vec _) (*-comm l 2) $ concat $ Data.Vec.map m5-strictly-larger xs
 
-            ix-half : ∀ {l-1} -> Vec A (suc l-1) -> Fin (suc l-1)
-            ix-half {l-1 = l-1} _ = fromℕ< {m = ⌊ suc l-1 /2⌋} (n>0⇒⌊n/2⌋<n _)
+            ix-half : ∀ l-1 -> Fin (suc l-1)
+            ix-half l-1 = fromℕ< {m = ⌊ suc l-1 /2⌋} (n>0⇒⌊n/2⌋<n _)
 
-            simplify-med-split : ∀ {l-5} -> let l = 5 + l-5 in {v : Vec (M5 A l) ⌊ l /5⌋} -> Split (M5 A l) ⌊ l /5⌋ (_≡ toℕ (ix-half v)) (_≡ ⌊ l-5 /5⌋ ℕ-ℕ ix-half v) -> Split (M5 A l) ⌊ l /5⌋ (_≡ ⌊ ⌊ l /5⌋ /2⌋) (_≡ ⌊ ⌊ l-5 /5⌋ /2⌋)
+            simplify-med-split : ∀ {l-5} -> let l = 5 + l-5 in Ordselect (M5 A l) ⌊ l /5⌋ (ix-half ⌊ l-5 /5⌋) -> Split (M5 A l) ⌊ l /5⌋ (_≡ ⌊ ⌊ l /5⌋ /2⌋) (_≡ ⌊ ⌊ l-5 /5⌋ /2⌋)
             simplify-med-split {A = A} {l-5 = l-5} s = let l = 5 + l-5 in
                 subst2 (λ lower-bound upper-bound -> Split (M5 A l) ⌊ l /5⌋ (_≡ lower-bound) (_≡ upper-bound))
                     (toℕ-fromℕ< $ n>0⇒⌊n/2⌋<n ⌊ l-5 /5⌋)
@@ -385,10 +385,9 @@ private
 
             unk : ∀ {l-5} -> let l = 5 + l-5 in Split (M5 A l) ⌊ l /5⌋ (_≡ ⌊ ⌊ l /5⌋ /2⌋) (_≡ ⌊ ⌊ l-5 /5⌋ /2⌋) -> Vec (Indexed A l) (2 * (l / 10) + 2 * (l-5 / 10))
             unk {l-5 = l-5} s = let l = 5 + l-5 in
-                    subst (λ x → Vec _ (2 * (l / 10) + 2 * x))
+                    subst2 (λ x y → Vec _ (2 * x + 2 * y))
+                        (trans (Split.bound-smaller s) (⌊n/5/2⌋≡n/10 l))
                         (trans (Split.bound-larger s) (⌊n/5/2⌋≡n/10 l-5)) $
-                    subst (λ x → Vec _ (2 * x + 2 * len (Split.larger s)))
-                        (trans (Split.bound-smaller s) (⌊n/5/2⌋≡n/10 l)) $
                     (m5-extract-strictly-larger $ Data.Vec.map Indexed.value $ Split.smaller s) ++ (m5-extract-strictly-smaller $ Data.Vec.map Indexed.value $ Split.larger s)
 
 private
