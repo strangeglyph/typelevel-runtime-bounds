@@ -10,6 +10,7 @@ open import Util
 
 open import Nat.Props.Plus public
 open import Nat.Props.Times public
+open import Nat.Props.Mul public
 open import Nat.Props.Minus public
 open import Nat.Props.Max public
 open import Nat.Props.Div public
