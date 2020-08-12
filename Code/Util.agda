@@ -6,6 +6,7 @@ open import Data.Nat.Properties using (m≤n+m)
 open import Data.Vec
 open import Data.Fin using (Fin ; raise ; inject≤) renaming (zero to fzero ; suc to fsuc)
 open import Relation.Binary.PropositionalEquality
+open import Relation.Binary.HeterogeneousEquality as H using (_≅_)
 open import Function
 
 private
@@ -21,8 +22,16 @@ len {n = n} _ = n
 subst2 : (P : A -> B -> Set c) {a₁ a₂ : A} {b₁ b₂ : B} -> a₁ ≡ a₂ -> b₁ ≡ b₂ -> P a₁ b₁ -> P a₂ b₂
 subst2 P refl refl p = p
 
-subst-≡ : (P : A -> Set a) -> {a : A} -> (eq : a ≡ a) -> (p : P a) -> subst P eq p ≡ p
-subst-≡ P refl p = refl
+
+≅-cong' :  {B : A -> Set b} {C : Set c}
+        -> {a1 a2 : A}
+        -> a1 ≡ a2
+        -> {x : B a1} -> {y : B a2}
+        -> (f : {a : A} -> B a -> C)
+        -> x ≅ y
+        -> f x ≅ f y
+≅-cong' refl f H.refl  = H.refl
+
 
 subst-appl : {P : A -> Set a} -> (f : (a : A) -> P a -> B) -> {a b : A} -> (eq : a ≡ b) -> (x : P a) -> f a x ≡ f b (subst P eq x)
 subst-appl f eq x rewrite eq = refl
