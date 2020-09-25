@@ -36,6 +36,9 @@ subst2 P refl refl p = p
 subst-appl : {P : A -> Set a} -> (f : (a : A) -> P a -> B) -> {a b : A} -> (eq : a ≡ b) -> (x : P a) -> f a x ≡ f b (subst P eq x)
 subst-appl f eq x rewrite eq = refl
 
+subst-appl' : {P : A -> Set a} -> (f : {a : A} -> P a -> B) -> {a b : A} -> (eq : a ≡ b) -> (x : P a) -> f (subst P eq x) ≡ f x
+subst-appl' f eq x rewrite eq = refl
+
 cong₃ : {A : Set a} {B : Set b} {C : Set c} {D : Set d} -> (f : A -> B -> C -> D) -> {a1 a2 : A} -> a1 ≡ a2 -> {b1 b2 : B} -> b1 ≡ b2 -> {c1 c2 : C} -> c1 ≡ c2 -> f a1 b1 c1 ≡ f a2 b2 c2
 cong₃ f refl refl refl = refl
 
