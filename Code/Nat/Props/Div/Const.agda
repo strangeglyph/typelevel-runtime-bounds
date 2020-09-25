@@ -8,6 +8,23 @@ open import Function
 
 open import Nat.Base
 
+
+⌈n2/2⌉≡n : ∀ n -> ⌈ n * 2 /2⌉ ≡ n
+⌈n2/2⌉≡n zero = refl
+⌈n2/2⌉≡n (suc zero) = refl
+⌈n2/2⌉≡n (suc (suc n)) = cong (suc ∘ suc) $ ⌈n2/2⌉≡n n
+
+⌈2n/2⌉≡n : ∀ n -> ⌈ 2 * n /2⌉ ≡ n
+⌈2n/2⌉≡n n = trans (cong ⌈_/2⌉ $ *-comm 2 n) (⌈n2/2⌉≡n n)
+
+⌊n2/2⌋≡n : ∀ n -> ⌊ n * 2 /2⌋ ≡ n
+⌊n2/2⌋≡n zero = refl
+⌊n2/2⌋≡n (suc n) = cong suc $ ⌊n2/2⌋≡n n
+
+⌊2n/2⌋≡n : ∀ n -> ⌊ 2 * n /2⌋ ≡ n
+⌊2n/2⌋≡n n = trans (cong ⌊_/2⌋ $ *-comm 2 n) (⌊n2/2⌋≡n n)
+
+
 ⌈n/2⌉+⌊n/2⌋≡n : ∀ n -> ⌈ n /2⌉ + ⌊ n /2⌋ ≡ n
 ⌈n/2⌉+⌊n/2⌋≡n zero = refl
 ⌈n/2⌉+⌊n/2⌋≡n (suc n) = begin

@@ -13,6 +13,9 @@ open import Nat.Props.Div
 ⌈log₂⌉-suc : ∀ n-2 -> let n = 2 + n-2 in ⌈log₂ n ⌉ ≡ suc ⌈log₂ ⌈ n /2⌉ ⌉
 ⌈log₂⌉-suc n-2 = cong (suc ∘ logPartial) $ logAccUnique _ _
 
+1+⌊log₂⌋-suc : ∀ n-1 -> let n = suc n-1 in 1+⌊log₂ n ⌋ ≡ suc 1+⌊log₂ ⌊ n /2⌋ ⌋
+1+⌊log₂⌋-suc n-1 = cong (suc ∘ logPartial) $ logAccUnique _ _
+
 ⌈log₂⌉-mono : ∀ {m n} -> m ≤ n -> ⌈log₂ m ⌉ ≤ ⌈log₂ n ⌉
 ⌈log₂⌉-mono {m} pf = ⌈log₂⌉-mono-step pf $ <-wellFounded m
     where
@@ -26,6 +29,22 @@ open import Nat.Props.Div
                 ⌈log₂ n ⌉ ∎
             where
                 open ≤-Reasoning
+
+1+⌊log₂⌋-mono : ∀ {m n} -> m ≤ n -> 1+⌊log₂ m ⌋ ≤ 1+⌊log₂ n ⌋
+1+⌊log₂⌋-mono {m} pf = 1+⌊log₂⌋-mono-step pf $ <-wellFounded m
+    where
+        1+⌊log₂⌋-mono-step : ∀ {m n} -> m ≤ n -> Acc _<_ m -> 1+⌊log₂ m ⌋ ≤ 1+⌊log₂ n ⌋
+        1+⌊log₂⌋-mono-step z≤n _ = z≤n
+        1+⌊log₂⌋-mono-step {m} {n} pf@(s≤s _) (Acc.acc more) = begin
+                1+⌊log₂ m ⌋            ≡⟨ 1+⌊log₂⌋-suc _ ⟩
+                suc 1+⌊log₂ ⌊ m /2⌋ ⌋  ≤⟨ s≤s $ 1+⌊log₂⌋-mono-step (⌊n/2⌋-mono pf) $ more ⌊ m /2⌋ (n>0⇒⌊n/2⌋<n _) ⟩
+                suc 1+⌊log₂ ⌊ n /2⌋ ⌋  ≡⟨ sym $ 1+⌊log₂⌋-suc _ ⟩
+                1+⌊log₂ n ⌋            ∎
+            where
+                open ≤-Reasoning
+
+1+⌊log₂⌋≥1 : ∀ m -> 1+⌊log₂ suc m ⌋ ≥ 1
+1+⌊log₂⌋≥1 m = s≤s z≤n
 
 
 merge-time : ℕ -> ℕ
