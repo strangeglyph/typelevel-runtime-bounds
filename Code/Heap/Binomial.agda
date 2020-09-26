@@ -40,6 +40,9 @@ data BinomialTree (A : Set a) : ℕ -> Set a where
 tSize : {l : ℕ} -> BinomialTree A l -> ℕ
 tSize {l = l} _ = 2 ^ l
 
+tVal : {l : ℕ} -> BinomialTree A l -> A
+tVal (Leaf x) = x
+tVal (Node x _) = x
 
 link : {l : ℕ} -> BinomialTree A l -> BinomialTree A l -> DecTree A (BinomialTree A (suc l)) 1
 link (Leaf l) (Leaf r) = if l ≤? r then return (Node l $ D[ Leaf r ]) else return (Node r $ D[ Leaf l ])
@@ -67,18 +70,6 @@ entries (entry _ ∷ ts) = 1 + entries ts
 
 ts-acc : {l acc : ℕ} -> SparseTreeList A l acc -> ℕ
 ts-acc {acc = acc} _ = acc
-
-tlist-amortized : {l : ℕ} -> Amortized (SparseTreeList A l)
-Amortized.i₀        tlist-amortized = 0
-Amortized.initial   tlist-amortized = []
-Amortized.potential tlist-amortized = entries
-Amortized.init≡0    tlist-amortized = refl
-
-heap-amortized : {l : ℕ} -> Amortized (BinomialHeap A)
-Amortized.i₀        heap-amortized           = 0
-Amortized.initial   (heap-amortized {l = l}) = heap {l = l} []
-Amortized.potential heap-amortized (heap ts) = entries ts
-Amortized.init≡0    heap-amortized           = refl
 
 
 tlist-subst : {l l' acc : ℕ} -> l ≡ l' -> SparseTreeList A l acc -> SparseTreeList A l' acc
@@ -116,27 +107,6 @@ leadingEntries : {l n : ℕ} -> SparseTreeList A l n -> ℕ
 leadingEntries [] = 0
 leadingEntries (empty∷ _) = 0
 leadingEntries (entry _ ∷ xs) = 1 + leadingEntries xs
-
-entrySequenceFrom : {l n : ℕ} -> ℕ -> SparseTreeList A l n -> ℕ
-entrySequenceFrom _ [] = 0
-entrySequenceFrom {l = l} n (empty∷ xss) with ord n l
-... | lt _ = 0
-... | eq _ = 0
-... | gt _ = entrySequenceFrom n xss
-entrySequenceFrom {l = l} n xs@(entry _ ∷ xss) with ord n l
-... | lt _ = leadingEntries xs
-... | eq _ = leadingEntries xs
-... | gt _ = entrySequenceFrom n xss
-
-seqFrom0≡leading : {l n : ℕ} -> (ts : SparseTreeList A l n) -> entrySequenceFrom 0 ts ≡ leadingEntries ts
-seqFrom0≡leading [] = refl
-seqFrom0≡leading {l = l} (empty∷ _) with ord 0 l
-... | lt _ = refl
-... | eq _ = refl
-seqFrom0≡leading {l = l} (entry _ ∷ ts) with ord 0 l
-... | lt _ = refl
-... | eq _ = refl
-
 
 leading≤len : {l n : ℕ} -> (ts : SparseTreeList A l n) -> leadingEntries ts ≤ entries ts
 leading≤len [] = z≤n
@@ -187,13 +157,6 @@ Amortized1.i₀        (tlist-amortized' A)   = 0
 Amortized1.initial   (tlist-amortized' A) l = []
 Amortized1.potential (tlist-amortized' A)   = entries
 Amortized1.init≡0    (tlist-amortized' A) l = ≤-antisym (len≤⌊log₂acc⌋ (Amortized1.initial (tlist-amortized' A) l)) z≤n
-
-binheap-amortized' : (A : Set a) -> Amortized' (BinomialHeap A) ℕ
-Amortized'.i₀        (binheap-amortized' A)             = 0
-Amortized'.initial   (binheap-amortized' A)           l = heap {l = l} []
-Amortized'.potential (binheap-amortized' A) (heap ts)   = entries ts
-Amortized'.init≡0    (binheap-amortized' A)           l = Amortized1.init≡0 (tlist-amortized' A) l
-
 
 
 extendTList : {l l' acc : ℕ} -> l ≤ l' -> SparseTreeList A l' acc -> SparseTreeList A l acc
@@ -506,17 +469,27 @@ findMin ts = delay-≤ (len≤⌊log₂acc⌋ ts) $ findMin' ts
         findMin'' : {l acc : ℕ} -> A -> (ts : SparseTreeList A l acc) -> DecTree A A (entries ts)
         findMin'' a [] = return a
         findMin'' a (empty∷ ts) = findMin'' a ts
-        findMin'' a (entry Leaf x ∷ ts) = if' a ≤? x then findMin'' a ts else findMin'' x ts
-        findMin'' a (entry Node x _ ∷ ts) = if' a ≤? x then findMin'' a ts else findMin'' x ts
+        findMin'' a (entry node ∷ ts) = if' a ≤? (tVal node) then findMin'' a ts else findMin'' (tVal node) ts
         findMin' : {l acc : ℕ} -> (ts : SparseTreeList A l (suc acc)) -> DecTree A A (entries ts)
         findMin' (empty∷ ts) = findMin' ts
-        findMin' (entry (Leaf x) ∷ ts) = delay' 1 $ findMin'' x ts
-        findMin' (entry (Node x _) ∷ ts) = delay' 1 $ findMin'' x ts
-
+        findMin' (entry node ∷ ts) = delay' 1 $ findMin'' (tVal node) ts
 
 cum-acc : {l : ℕ} -> DescList (BinomialTree A) l -> ℕ
 cum-acc D[ _ ] = 1
 cum-acc (_D∷_ {l = l} _ dl) = cum-acc dl + 2 ^ (suc l)
+
+cum-acc≡2^l : {l : ℕ} -> (dl : DescList (BinomialTree A) l) -> suc (cum-acc dl) ≡ 2 ^ (suc l)
+cum-acc≡2^l D[ _ ] = refl
+cum-acc≡2^l {l = l} (_D∷_ {l = l-1} _ dl) = cong (_+ 2 ^ l) $ cum-acc≡2^l dl
+
+
+inner-acc : {l : ℕ} -> BinomialTree A l -> ℕ
+inner-acc (Leaf _) = 0
+inner-acc (Node _ ts) = cum-acc ts
+
+inner-acc≡2^l : {l : ℕ} -> (t : BinomialTree A l) -> suc (inner-acc t) ≡ 2 ^ l
+inner-acc≡2^l (Leaf _) = refl
+inner-acc≡2^l (Node _ ts) = cum-acc≡2^l ts
 
 desclist-2-sparselist : {l : ℕ} -> (dl : DescList (BinomialTree A) l) -> SparseTreeList A 0 (cum-acc dl)
 desclist-2-sparselist dl = tlist-subst-acc (+-identityʳ $ cum-acc dl) $ dl-2-sparse dl []
@@ -524,6 +497,11 @@ desclist-2-sparselist dl = tlist-subst-acc (+-identityʳ $ cum-acc dl) $ dl-2-sp
         dl-2-sparse : {l acc : ℕ} -> (dl : DescList (BinomialTree A) l) -> SparseTreeList A (suc l) acc -> SparseTreeList A 0 (cum-acc dl + acc)
         dl-2-sparse {acc = acc} D[ x ] ts = entry_∷_ {acc'≡2^l+acc = refl} x ts
         dl-2-sparse {l = l} {acc = acc} (x D∷ dl) ts = tlist-subst-acc (sym $ +-assoc (cum-acc dl) (2 ^ l) acc) $ dl-2-sparse dl (entry_∷_ {acc'≡2^l+acc = refl} x ts)
+
+
+inner-trees : {l : ℕ} -> (t : BinomialTree A l) -> SparseTreeList A 0 (inner-acc t)
+inner-trees (Leaf _) = []
+inner-trees (Node _ ts) = desclist-2-sparselist ts
 
 record RemoveTree (A : Set a) (l : ℕ) (acc : ℕ) : Set a where
      field
@@ -533,12 +511,78 @@ record RemoveTree (A : Set a) (l : ℕ) (acc : ℕ) : Set a where
          tree : BinomialTree A l'
          rem-heap : SparseTreeList A l acc'
          full-heap : SparseTreeList A l acc
+         acc≡acc'+inner : acc ≡ acc' + suc (inner-acc tree)
 
-find-and-remove-min : {l acc : ℕ} -> (ts : SparseTreeList A l (suc acc)) -> DecTree A (RemoveTree A l (suc acc)) 1+⌊log₂ suc acc ⌋
-find-and-remove-min ts = delay-≤ (len≤⌊log₂acc⌋ ts) $ find-and-remove-min' ts
+
+find-and-remove-min-tree : {l acc : ℕ} -> (ts : SparseTreeList A l (suc acc)) -> DecTree A (RemoveTree A l (suc acc)) 1+⌊log₂ suc acc ⌋
+find-and-remove-min-tree ts = delay-≤ (len≤⌊log₂acc⌋ ts) $ find-and-remove-min' ts
     where
+        ext-rt-empty : {l acc : ℕ} -> RemoveTree A (suc l) acc -> RemoveTree A l acc
+        ext-rt-empty record { min = min ; tree = tree ; rem-heap = rem-heap ; full-heap = full-heap ; acc≡acc'+inner = accinn}
+                     = record { min = min ; tree = tree ; rem-heap = empty∷ rem-heap ; full-heap = empty∷ full-heap ; acc≡acc'+inner = accinn}
+        ext-rt-entry : {l acc : ℕ} -> BinomialTree A l -> RemoveTree A (suc l) acc -> RemoveTree A l (2 ^ l + acc)
+        ext-rt-entry {l = l} t record { min = min ; tree = tree ; rem-heap = rem-heap ; full-heap = full-heap ; acc≡acc'+inner = accinn }
+                     = record {
+                         min = min
+                       ; tree = tree
+                       ; rem-heap =  entry_∷_ {acc'≡2^l+acc = refl} t rem-heap
+                       ; full-heap = entry_∷_ {acc'≡2^l+acc = refl} t full-heap
+                       ; acc≡acc'+inner = trans (cong (λ x → 2 ^ l + x) accinn) (sym $ +-assoc (2 ^ l) _ _)
+                     }
+        swap-rt : {l acc : ℕ} -> BinomialTree A l -> RemoveTree A (suc l) acc -> RemoveTree A l (2 ^ l + acc)
+        swap-rt {acc = acc} node record { full-heap = full-heap ; acc≡acc'+inner = acc+inn }
+                = record {
+                    min = (tVal node)
+                  ; tree = node
+                  ; rem-heap = empty∷ full-heap
+                  ; full-heap = entry_∷_ {acc'≡2^l+acc = refl} node full-heap
+                  ; acc≡acc'+inner = trans (cong (_+ acc) $ sym $ inner-acc≡2^l node) (+-comm _ acc)
+                }
         find-and-remove-min' : {l acc : ℕ} -> (ts : SparseTreeList A l (suc acc)) -> DecTree A (RemoveTree A l (suc acc)) (entries ts)
-        find-and-remove-min' ts = {!!}
+        find-and-remove-min' (empty∷ ts) = find-and-remove-min' ts <&> λ rt -> ext-rt-empty rt
+        find-and-remove-min' (entry_∷_ {acc = acc@(suc acc-1)} {acc'≡2^l+acc = pf} node ts) =
+                                    height-≡ (+-comm _ 1) $ do
+                                        rt <- find-and-remove-min' ts
+                                        if' (RemoveTree.min rt) ≤? (tVal node)
+                                            then return (subst (RemoveTree _ _) (sym pf) $ ext-rt-entry node rt)
+                                            else return (subst (RemoveTree _ _) (sym pf) $ swap-rt node rt)
+        find-and-remove-min' {l = l} (entry_∷_ {acc = zero} {acc'≡2^l+acc = pf} node ts) =
+                                    delay-≤ z≤n $
+                                    return $ subst (RemoveTree _ _) (sym pf) $
+                                           record { min = (tVal node)
+                                                  ; tree = node
+                                                  ; rem-heap = []
+                                                  ; full-heap = entry_∷_ {acc'≡2^l+acc = refl} node []
+                                                  ; acc≡acc'+inner = trans (+-identityʳ $ 2 ^ l) (sym $ inner-acc≡2^l node)
+                                           }
 
-deleteMin : {l acc : ℕ} -> (ts : SparseTreeList A l (suc acc)) -> Am (tlist-amortized0 A) A
-deleteMin = {!!}
+deleteMin : {l acc : ℕ} -> (ts : SparseTreeList A l (suc acc)) -> Am1 (tlist-amortized' A) A 0
+deleteMin {A = A} {l = l} ts = Am1.init-comp {am = tlist-amortized' A} rem λ rt → tListMergeAm≤ z≤n (inner-trees $ RemoveTree.tree rt) (RemoveTree.rem-heap rt)
+    where
+        rem = find-and-remove-min-tree ts
+
+
+deleteMin-in-log-time :  {{_ : Leq A}}
+                         {l acc : ℕ}
+                      -> (ts : SparseTreeList A l (suc acc))
+                      -> atime-full1 (deleteMin ts) ℤ.≤ + 3 * 1+⌊log₂ suc acc ⌋
+deleteMin-in-log-time {acc = acc} ts = ℤ-Props.+-monoʳ-≤ (+ 1+⌊log₂ suc acc ⌋) $ begin
+        atime-full1 (tListMergeAm≤ z≤n (inner-trees $ RemoveTree.tree rem') (RemoveTree.rem-heap rem'))
+                ≤⟨ tlist-merge-in-linear-time≤ z≤n (inner-trees $ RemoveTree.tree rem') (RemoveTree.rem-heap rem') ⟩
+        + (entries (inner-trees $ RemoveTree.tree rem') + entries (RemoveTree.rem-heap rem'))
+                ≤⟨ ℤ-Props.+-monoʳ-≤ (+ (entries $ inner-trees $ RemoveTree.tree rem')) $ ℤ.+≤+ $ len≤⌊log₂acc⌋ (RemoveTree.rem-heap rem') ⟩
+        + (entries (inner-trees $ RemoveTree.tree rem') + 1+⌊log₂ RemoveTree.acc' rem' ⌋)
+                ≤⟨ ℤ-Props.+-monoʳ-≤ (+ entries (inner-trees $ RemoveTree.tree rem')) $ ℤ.+≤+ $ 1+⌊log₂⌋-mono acc'≤acc ⟩
+        + (entries (inner-trees $ RemoveTree.tree rem') + 1+⌊log₂ suc acc ⌋)
+                ≤⟨ ℤ-Props.+-monoˡ-≤ (+ 1+⌊log₂ suc acc ⌋) $ ℤ.+≤+ $ len≤⌊log₂acc⌋ $ inner-trees $ RemoveTree.tree rem' ⟩
+        + (1+⌊log₂ inner-acc $ RemoveTree.tree rem' ⌋ + 1+⌊log₂ suc acc ⌋)
+                ≤⟨ ℤ-Props.+-monoˡ-≤ (+ 1+⌊log₂ suc acc ⌋) $ ℤ.+≤+ $ 1+⌊log₂⌋-mono $ n≤1+n _ ⟩
+        + (1+⌊log₂ suc $ inner-acc $ RemoveTree.tree rem' ⌋ + 1+⌊log₂ suc acc ⌋)
+                ≤⟨ ℤ-Props.+-monoˡ-≤ (+ 1+⌊log₂ suc acc ⌋) $ ℤ.+≤+ $ 1+⌊log₂⌋-mono accinner≤acc ⟩
+        + 2 * 1+⌊log₂ suc acc ⌋ ∎
+    where
+        open ℤ-Props.≤-Reasoning
+        rem = find-and-remove-min-tree ts
+        rem' = reduce rem
+        acc'≤acc = m+n≤o⇒m≤o (RemoveTree.acc' rem') (≤-reflexive $ sym $ RemoveTree.acc≡acc'+inner rem')
+        accinner≤acc = m+n≤o⇒n≤o (RemoveTree.acc' rem') (≤-reflexive $ sym $ RemoveTree.acc≡acc'+inner rem')
