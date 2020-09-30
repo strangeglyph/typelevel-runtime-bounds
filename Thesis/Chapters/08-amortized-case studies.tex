@@ -1,0 +1,40 @@
+% !TeX root = ../main.tex
+% !TeX spellcheck = en_US
+
+\chapter{Case Study: Binomial Heaps}
+As an example of how to use the framework we developed in the last chapter, let us take a look at binomial heaps. A heap is a data structure designed for quick access (and usually removal) of a minimum element. Use cases include, among other things, priority queues and sorting algorithms.
+
+\section{Theoretical Background}
+First, we need to define binomial \emph{trees}. Binomial trees are already heaps in their own right, but with one notable restriction: The size of each trees is always a power of two. The logarithm of the size of a tree is called its rank.
+
+A rank zero tree is just a single node:
+
+\begin{figure}[h]
+\begin{center}
+    \input{Tikz/binomial-tree-rank-0.tex}
+\end{center}
+\end{figure}
+
+A rank $n$ tree is a root node with $n$ children: the first a rank $n-1$ tree, the second a rank $n-2$ child and so on. The value of each child node must be larger than that of the root node.
+
+\begin{figure}[h]
+\begin{center}
+    \input{Tikz/binomial-tree-rank-n.tex}
+\end{center}
+\caption{Binomial trees of higher ranks}
+\label{fig:binomial:rankn}
+\end{figure}
+
+We can join (or link) two trees of the same rank quickly by comparing their root nodes. The tree with the larger root becomes a child of the tree with the smaller one, increasing the rank of the new tree by one (\autoref{fig:binomial:merge}).
+
+\begin{figure}[h]
+\begin{center}
+    \input{Tikz/binomial-tree-merge.tex}
+\end{center}
+\caption{Merging two binomial trees}
+\label{fig:binomial:merge}
+\end{figure}
+
+Using these trees, we can now construct a binomial heap capable of storing any number of elements. We model a heap as a list of binomial trees of strictly increasing rank. A heap with $n$ elements has at most $1 + \lfloor \log_2 n \rfloor$ elements: The largest tree in this heap has rank $\lfloor \log_2 n \rfloor$ and then there can be only $\lfloor \log_2 n \rfloor$ trees with a smaller rank.
+
+To find the minimum element, we iterate over all trees in the heap, finding the minimum among their root elements. Since there are only $\log n$ trees, this runs in $\mathcal O(\log n)$

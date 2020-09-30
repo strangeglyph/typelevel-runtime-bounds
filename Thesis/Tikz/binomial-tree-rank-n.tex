@@ -1,0 +1,31 @@
+\begin{tikzpicture}
+
+\node [shape=circle, minimum size = 2em, draw=black] (v1) at (0,0) {$3$};
+\node [shape=circle, minimum size = 2em, draw=black] (v2) at (0,-1.5) {$6$};
+\draw  (v1) edge (v2);
+\node at (0,1) {Rank 1};
+\node at (4.5,1) {Rank 2};
+\node [shape=circle, minimum size = 2em, draw=black] (v3) at (4.5,0) {$2$};
+\node [shape=circle, minimum size = 2em, draw=black] (v6) at (4.5,-1.5) {$5$};
+\node [shape=circle, minimum size = 2em, draw=black] (v4) at (3,-1.5) {$4$};
+\node [shape=circle, minimum size = 2em, draw=black] (v5) at (3,-3) {$7$};
+\draw  (v3) edge (v4);
+\draw  (v4) edge (v5);
+\draw  (v3) edge (v6);
+\node [shape=circle, minimum size = 2em, draw=black] (v7) at (11.5,0) {$3$};
+\node [shape=circle, minimum size = 2em, draw=black] (v8) at (11.5,-1.5) {$9$};
+\node [shape=circle, minimum size = 2em, draw=black] (v9) at (10,-1.5) {$6$};
+\node [shape=circle, minimum size = 2em, draw=black] (v11) at (8.5,-1.5) {$7$};
+\node [shape=circle, minimum size = 2em, draw=black] (v10) at (10,-3) {$7$};
+\node [shape=circle, minimum size = 2em, draw=black] (v12) at (8.5,-3) {$9$};
+\node [shape=circle, minimum size = 2em, draw=black] (v13) at (7,-3) {$9$};
+\node [shape=circle, minimum size = 2em, draw=black] (v14) at (7,-4.5) {$9$};
+\draw  (v7) edge (v8);
+\draw  (v7) edge (v9);
+\draw  (v9) edge (v10);
+\draw  (v7) edge (v11);
+\draw  (v11) edge (v12);
+\draw  (v11) edge (v13);
+\draw  (v13) edge (v14);
+\node at (11.5,1) {Rank 3};
+\end{tikzpicture}
