@@ -1,8 +1,7 @@
 % !TeX root = ../main.tex
 % !TeX spellcheck = en_US
 
-\chapter{Framework}
-
+\chapter{Deterministic Analysis}
 It is hard to develop a framework that makes it impossible for programmers to circumvent the restrictions placed on them and thus invalidate the guarantees of the running time bounds. Fundamentally, the problem is that the programmer is permitted to perform any computation at any point of time. Thus it is possible for them to solve the given problem and only then lift the solution into our framework.
 
 When we can't restrict the power of the programmer, we must instead turn towards hiding information. Specifically, if the algorithm only operates on abstract data, it has no way of inspecting this data in detail. In particular, an algorithm won't be able to compare any two atoms of data given to it. We then supply our framework with an operation to simulate a comparison which can be used instead. The user of an algorithm can then specify how to compare two elements and thus complete the computation.
