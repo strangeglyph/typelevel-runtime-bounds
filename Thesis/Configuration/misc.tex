@@ -5,6 +5,10 @@
 \pgfplotsset{compat=1.16}
 
 \pagestyle{fancy}
+\renewcommand{\headrulewidth}{0pt}
+\fancyhead[LE,RO]{~\\\hrulefill\\\textsl{\rightmark}}
+\fancyhead[CE,CO]{~\\\hrulefill\\~}
+\fancyhead[RE,LO]{\textsl{\leftmark}\\\vspace{-0.6em}\hrulefill\\~}
 
 \addbibresource{references.bib}
 
