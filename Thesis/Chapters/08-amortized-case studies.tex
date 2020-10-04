@@ -3,7 +3,7 @@
 
 \chapter{Case Study: Binomial Heaps}
 \label{ch:casestudyamortized}
-As an example of how to use the framework we developed in the last chapter, let us take a look at binomial heaps. A heap is a data structure designed for quick access (and usually removal) of a minimum element. Use cases include, among other things, priority queues and sorting algorithms.
+As an example of how to use the framework we developed in the last chapter, let us take a look at binomial heaps. A heap is a data structure designed for quick access (and usually removal) of a minimum element. Use cases include, among other things, priority queues and sorting algorithms. Binomial heaps in particular were originally invented by Vuillemin \cite{vuillemin:1978:binheaps} and are special in that they combine a low-complexity implementation with reasonably fast operations, in particular computing the union of two heaps in logarithmic time.
 
 \section{Theoretical Background}
 First, we need to define binomial \emph{trees}. Binomial trees are already heaps in their own right, but with one notable restriction: The size of each trees is always a power of two. The logarithm of the size of a tree is called its rank.
