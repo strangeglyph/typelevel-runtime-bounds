@@ -2,17 +2,18 @@
 % !TeX spellcheck = en_US
 
 \chapter{Deterministic Analysis}
-It is hard to develop a framework that makes it impossible for programmers to circumvent the restrictions placed on them and thus invalidate the guarantees of the running time bounds. Fundamentally, the problem is that the programmer is permitted to perform any computation at any point of time. Thus it is possible for them to solve the given problem and only then lift the solution into our framework.
+\label{ch:detanalysis}
+It is hard to develop a framework that makes it impossible for programmers to circumvent the restrictions placed on them and thus invalidate the guarantees of the runtime bounds. Fundamentally, the problem is that in a general purpose programming language, the programmer is permitted to perform any computation at any point in time. How then do we ensure that a programmer doesn't solve a given problem entirely outside the framework, only to wrap the solution in our desired type at the end?
 
-When we can't restrict the power of the programmer, we must instead turn towards hiding information. Specifically, if the algorithm only operates on abstract data, it has no way of inspecting this data in detail. In particular, an algorithm won't be able to compare any two atoms of data given to it. We then supply our framework with an operation to simulate a comparison which can be used instead. The user of an algorithm can then specify how to compare two elements and thus complete the computation.
+When we can't restrict the power of the programmer, we must instead turn towards hiding information. Specifically, if the algorithm only operates on abstract data (if it is polymorphic in the input data), it has no way of inspecting it in detail. In particular, an algorithm won't be able to \emph{compare} any two instances of data given to it. We then supply our framework with an operation that simulates a comparison which can be used as a replacement. This operation is counted as one unit of time; the total time for an algorithm is the number of comparisons executed. The caller of a function can then later specify how to order any two elements and thus complete the computation.
 
-There are limitations to this approach of course. For one, it only works where comparisons are an important operation and also a relevant metric for measuring execution time. Fortunately, this is true for a broad class of algorithms - for example most sorting algorithms.
+There are limitations to this approach of course. For one, it only works where comparisons are an central operation and a relevant metric for measuring execution time. Fortunately, this is true for a broad class of algorithms - for example most sorting algorithms.
 
-Secondly, it only works for functions which are not aware what kind of data they are manipulating. Therefore it is possible to create e.g. a sorting function specialized for integers that is able to do comparisons outside our framework.
+Secondly, it only works for functions which are not aware what kind of data they are manipulating. Therefore it is possible to create e.g. a sorting function specialized for integers which is able to compare elements outside our framework.
 
-Lastly, this framework, and especially the proof burden for the running time bounds, means there is a certain overhead associated with our framework. Since these proofs reason about our framework, they must necessarily be separate from it and thus we cannot guarantee that the time to calculate the algorithm in our framework does not asymptotically exceed the time to compute the algorithm itself.
+Lastly, this framework, and especially the proof burden for the runtime bounds means there is a certain overhead associated with our framework. We can show that the time to evaluate a computation within our framework is asymptotically the same as if it were implemented directly as long as computational steps between comparisons are constant time. However since the construction of proof objects is usually outside the framework, we cannot guarantee that this holds in general.
 
-\todo{difficulties of guaranteeing runtime remains the same - especially with proofs factoring in}
+Here is the type signature of the data structure that will form the core of our framework. It represents a decision tree where the nodes are individual computational steps and forks are comparisons where, depending on the result of the comparison we continue with the left or right branch:
 
 \begin{lstlisting}[caption={The DecTree Monad},label={lst:dectree:1},emph={DecTree,Set,Level}]
 data DecTree (Compare : Set a) (B : Set b) :
@@ -20,9 +21,7 @@ data DecTree (Compare : Set a) (B : Set b) :
     ...
 \end{lstlisting}
 
-Our book-keeping monad is parameterized by two types: \texttt{Compare}, the type of values on which we will perform comparisons, and \texttt{B}, the type of the value being returned.
-
-Additionally we are indexed by the height of the decision tree \todo{introduce term}. This will be our run time bound.
+Our book-keeping monad is parameterized by two types: \texttt{Compare}, the type of values on which we will perform comparisons, and \texttt{B}, the return type of the computation. Additionally we are indexed by the height of the decision tree. This will be our run time bound.
 
 Our monad has four constructors:
 
@@ -33,7 +32,7 @@ data DecTree ... where
     return : B -> DecTree Compare B 0
 \end{lstlisting}
 
-A simple return, lifting a value into the monad. Returning a value does not increment our run time bound.
+A simple return, lifting a value into the monad. Returning a value does not cost any time.
 
 \begin{lstlisting}[caption={The DecTree Monad},label={lst:dectree:3},emph={DecTree}]
 data DecTree ... where
@@ -58,7 +57,7 @@ data DecTree ... where
           -> DecTree Compare B (h + d)
 \end{lstlisting}
 
-We can insert arbitrary delays into a computations. Semantically this is fine since we only provide an upper bound on the computation anyway and thus raising this bound is not a problem. Practically, this is going to help us give cleaner bounds.
+We can insert arbitrary delays into a computations. Semantically this is fine since the only guarantee we provide is an \emph{upper} bound on the runtime and thus raising that bound is not a problem. Practically, this is going to help us give cleaner bounds.
 
 \begin{lstlisting}[caption={The DecTree Monad},label={lst:dectree:5},emph={DecTree,if,then,else}]
 data DecTree ... where
@@ -82,7 +81,7 @@ reduce :  {h : bNat}
        -> Result
 \end{lstlisting}
 
-We pass the reduction function our decision tree and a way to compare elements in the tree (\texttt{Leq Compare} allows us to use the function \texttt{\_<=\_ : \{\{\_ : Leq Compare\}\} -> Compare -> Compare -> Bool}).
+We pass to the reduction function our decision tree and a way to compare elements in the tree (\texttt{Leq Compare} brings into scope the function \texttt{\_<=\_ : Compare -> Bool}).
 
 
 \begin{lstlisting}[caption={Evaluating the Monad},label={lst:dectree-eval:2},emph={reduce,DecTree,return}]
@@ -96,7 +95,7 @@ Evaluating a \texttt{return} is straightforward.
 reduce (tree >>= transform) = reduce (transform (reduce tree))
 \end{lstlisting}
 
-To evaluate a bind, we evaluate the first computation, apply the bind function and then evaluate the result.
+To evaluate a bind, we evaluate the first computation, apply the bound function and then evaluate the result again.
 
 \begin{lstlisting}[caption={Evaluating the Monad},label={lst:dectree-eval:4},emph={reduce,DecTree,delay}]
 reduce (delay _ x) = reduce x
@@ -111,6 +110,8 @@ reduce (if x \leq? y then left else right) with x <= y
 \end{lstlisting}
 
 For a comparison, we use the comparison function \texttt{\_<=\_} made accessible by \texttt{Leq Compare} and, depending on the result, evaluate the left or the right branch.
+
+The structure of the reduction function makes it clear that the time spent evaluating a computation is asymptotically bounded by the depth of the tree, as long as all \texttt{transform} functions take constant time and barring excessive use of zero-delay \texttt{delay}s.
 
 
 This is technically sufficient for our framework. However there is a number of proofs about decision trees that turn up quite frequently and for which we can provide convenience methods:
@@ -143,7 +144,7 @@ delay-\leq d\leqd' tree = case diff d\leqd' of λ (Diff n by pf) ->
                     height-\equiv pf $ delay n tree
 \end{lstlisting}
 
-Convenience methods for inserting delays allow us to swap the delay and the height parameter as well as giving us a way to delay a computation based on some bound.
+Convenience methods for inserting delays allow us to swap the delay and the height parameter as well as giving us a way to delay a computation based on some upper bound.
 
 \begin{lstlisting}[caption={Alternatives to if-then-else},label={lst:dectree:ifthenelse-alt},emph={if,then,else,by,DecTree,\_then\_else\_by\_,\[\_\]\_}]
 
@@ -153,7 +154,7 @@ if[_]_\leq?_then_else_by_ :  (R : Idx -> Set b)
                        -> DecTree C (R i\_1) h\_1
                        -> DecTree C (R i\_2) h\_2
                        -> i\_2 \equiv i\_1
-                       -> DecTree C (R i\_2) (1 + (h\_1 \lub h\_2))
+                       -> DecTree C (R i\_1) (1 + (h\_1 \lub h\_2))
 if[ R ] a \leq? b then left else right by proof =
         if a \leq? b
         then left
@@ -171,4 +172,4 @@ if' a \leq? b then left else right =
         if x \leq? y then left else right
 \end{lstlisting}
 
-If the two branches return computations of equal length, we can omit the computation of the maximum.
+If the two branches return computations of equal length, we can omit the maximum.
