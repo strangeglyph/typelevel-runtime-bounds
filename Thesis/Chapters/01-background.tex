@@ -220,6 +220,7 @@ Why does the termination checker permit this recursion scheme? After all, \textt
 
 
 \subsection{Equality}
+\label{sec:tutorial:equality}
 A key selling point of dependently type languages is the representation of equality of values at the type level, and the ability to reason with these equality constructs. In Agda, equality is commonly defined as follows\footnote{This is called homogeneous equality, where the two sides of the equality need to have the same type. Agda also has a definition for heterogeneous equality, where the two sides of the equality may have nominally different types, though this is less well-supported by the standard library. In the Cubical Type Theory model of Agda, all equalities are heterogeneous.}:
 
 \begin{lstlisting}[caption={Equality in Agda},label={lst:tutorial:equality},emph={refl}]
