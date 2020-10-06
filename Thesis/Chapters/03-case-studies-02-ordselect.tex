@@ -2,7 +2,7 @@
 % !TeX spellcheck = en_US
 
 \section{Median and Order Statistics}
-Our final case study is concerned with computing order statistics. The $k$th order statistic is the $k$th smallest value in a set. The median is a special case of an order statistic with $k = \frac n 2$. The obvious approach to calculating order statistics is to first sort the set and then select the value at index $k$. With current search algorithms, this can be done in time $\mathcal O(n \log n)$. However we can do better: The quickselect algorithm of Hoare \cite{hoare:1961:quickselect} calculates order statistics in linear time. The algorithm works by quickly identifying the top and bottom 30\% of values so in each iteration we can eliminate a significant chunk of the data set.
+Our final case study is concerned with computing order statistics. The $k$th order statistic is the $k$th smallest value in a set. The median is a special case of an order statistic with $k = \frac n 2$. The obvious approach to calculating order statistics is to first sort the set and then select the value at index $k$. With a sorting algorithm, this can be done in time $\mathcal O(n \log n)$. However we can do better: The quickselect algorithm of Hoare \cite{hoare:1961:quickselect} calculates order statistics in linear time. The algorithm works by quickly identifying the top and bottom 30\% of values so in each iteration we can eliminate a significant chunk of the data set.
 
 Often we are not only interested in \emph{what} the $k$th order statistics is, but also where to find it in the original data set, and which values are smaller or larger than it. We calculate this information anyway, so we return it alongside the actual value.
 
@@ -29,9 +29,9 @@ record Split (A : Set a) (l : bNat) (b\_1 b\_2 : bNat -> Set) : Set a where
         bound-larger : b\_2 l\_2
 \end{lstlisting}
 
-The \texttt{Split} type, which will form the return type of our median and quickselect functions, is parameterized by four values: The type from which we will draw our values, the size of the set analyzed and two constraint types, indexed by the naturals. The record stores the median value, as well as the remainder of the analyzed set split into a smaller, a larger and a section of which we do not have ordering information.
+The \texttt{Split} type, which will form the return type of our median and quickselect functions, is parameterized by four values: The type from which we will draw our values, the size of the set analyzed and two constraint types, indexed by the naturals. The record stores the median value, as well as the remainder of the analyzed set split into a smaller and a larger section and one of which we do not have ordering information.
 
-We guarantee that a \texttt{Split} instance contains the entirety of the originally analyzed set by proxy, by showing that the length of the three subsets plus the median element itself sum up to the original length.
+We guarantee that a \texttt{Split} instance contains the entirety of the originally analyzed set by proxy: by showing that the length of the three subsets plus the median element itself sum up to the original length.
 
 Finally, we have two bounds, one for the size of the smaller and one for the size of the larger subset. This allows us to express the guarantee of the intermediate elimination described above:
 
@@ -48,13 +48,21 @@ median :  Vec A l
 \end{lstlisting}
 
 
-Our intermediate step works as follows: We group our data into sets of five. We can order the elements of each of these sets with respect to their median in constant time.
+Our intermediate step works as follows: We group our data into sets of five. We can order the elements of each of these sets with respect to their median in constant time (\autoref{fig:median-of-5}).
+
+\begin{figure}[h]
+\begin{center}
+        \input{Tikz/median-of-5.tex}
+\end{center}
+\caption{Median of 5}
+\label{fig:median-of-5}
+\end{figure}
 
 \begin{lstlisting}[caption={Median of 5},label={lst:median:medofmeds},emph={M,median,by,medians,of}]
 M5 : Set a -> bNat -> Set a
-M5 A l = Indexed A l × Indexed A l
-× Indexed A l
-× Indexed A l × Indexed A l
+M5 A l = Indexed A l × Indexed A l -- the two smaller elements
+       × Indexed A l               -- the median
+       × Indexed A l × Indexed A l -- the two larger elements
 
 median5-by :  (X -> A)
            -> X -> X -> X -> X -> X
@@ -66,7 +74,7 @@ data Medians-Of-5 (A : Set a) (l : bNat) : Set a where
             -> Vec (Indexed A l) (l % 5)
             -> Medians-Of-5 A l
 
- _:::_ : M5 A 5 -> Medians-Of-5 A l -> Medians-Of-5 A (5 + l)
+_:::_ : M5 A 5 -> Medians-Of-5 A l -> Medians-Of-5 A (5 + l)
 
 
 medians-of-5-by :  (X -> A) -> Vec X l
@@ -103,7 +111,15 @@ medians-of-5-by f (a :: b :: c :: d :: e :: xs) =
 
 We ignore the final remainder of the list if it is not divisible by 5, and map our five-element median function over the rest. Each step takes us slightly less than 10 units of time per five elements, and we bound this from above as two times the size of the set.
 
-Having done that, we can order the sets \emph{themselves} by comparing these median values. By transitivity we know that in each set smaller than the median set, the leftmost three items are smaller than the median-of-medians. This also holds symmterically for the larger sets. \todo{Visualize: See Hinze Intro to Programming}
+Having done that, we can order these sets-of-5 \emph{themselves} by comparing their median values. By transitivity we know that in each set that is smaller than the median set, the leftmost three items are smaller than the median of the median values. This also holds symmetrically for the larger sets (see \autoref{fig:median-of-medians}).
+
+\begin{figure}
+\begin{center}
+    \input{Tikz/median-of-medians.tex}
+\end{center}
+\caption{Median of medians}
+\label{fig:median-of-medians}
+\end{figure}
 
 How do we select the median-of-medians? We fall back to the function we wanted to implement originally -- the median selection itself, now on the reduced data set of $\lfloor \frac n 5 \rfloor$.
 
@@ -134,7 +150,7 @@ ordselect-by :  let l = suc l-1 in
 
 Since our functions are mutually recursive, we have to pass an accessibility proof again. As with our sorting algorithms, we will show termination by way of the length of the vector.
 
-Our elimination function will return a quasi-median: A split that guarantees that guarantees that 30\% (strictly speaking: $3\lfloor l {10}\rfloor$) of elements are smaller and greater than the selected median value. We furthermore guarantee that this is achievable in linear time with constant factor 9.
+Our elimination function will return a quasi-median: A split that guarantees that guarantees that 30\% (strictly speaking: $3\lfloor \frac l {10}\rfloor$) of elements are smaller and greater than the selected median value. We furthermore guarantee that this is achievable in linear time with constant factor 9.
 
 In a similar vein, our ordselect (\emph{order statistic selection}) algorithm will return a split that guarantees that exactly $i$ elements are smaller than the $i$th order statistic and the remaining $l - i - 1$ elements are larger. This too is achievable in linear time, with constant factor 35.
 
@@ -170,21 +186,7 @@ quasi-median-by (Acc.acc more) f
             ; bound-larger = a+a*n/10\geqa*\lceiln+5\rceil/10 3 (len xss)
             }
   where
-    open Data.Fin hiding (_+_ ; _\leq_)
-    open import Data.Fin.Properties hiding (\leq-refl)
-    open import Fin.Props
     m5-extract-value    :  M5 A l -> A
-    m5-extract-indexed  :  M5 A l -> Indexed A l
-    m5-strictly-smaller :  M5 A l -> Vec (Indexed A l) 2
-    m5-strictly-larger  :  M5 A l -> Vec (Indexed A l) 2
-    m5-extract-l        :  Vec (M5 A l') l
-                        -> Vec (Indexed A l') (3 * l)
-    m5-extract-r        :  Vec (M5 A l') l
-                        -> Vec (Indexed A l') (3 * l)
-    m5-extract-strictly-smaller :  Vec (M5 A l') l
-                                -> Vec (Indexed A l') (2 * l)
-    m5-extract-strictly-larger  :  Vec (M5 A l') l
-                                -> Vec (Indexed A l') (2 * l)
 
     ix-half : Vec A (suc l-1) -> Fin (suc l-1)
     ix-half _ = frombNat< {m = \lfloor suc l-1 /2\rfloor} (n>0=>\lfloorn/2\rfloor<n _)
@@ -194,56 +196,24 @@ quasi-median-by (Acc.acc more) f
                 -> Split (M5 A l) \lfloor l /5\rfloor
                          (_\equiv \lfloor \lfloor l /5\rfloor /2\rfloor)
                          (_\equiv \lfloor \lfloor l-5 /5\rfloor /2\rfloor)
-    simplify-med-split s = let l = 5 + l-5 in
-        subst2 (\lambda  lower-bound upper-bound
-                -> Split (M5 A l) \lfloor l /5\rfloor
-                         (_\equiv lower-bound)
-                         (_\equiv upper-bound))
-            (tobNat-frombNat< $ n>0=>\lfloorn/2\rfloor<n \lfloor l-5 /5\rfloor)
-            (nbNat-bNatsuc\lfloorn/2\rfloor\equiv\lfloorn-1/2\rfloor \lfloor l-5 /5\rfloor)
-        s
 
     small :  let l = 5 + l-5 in
              Split (M5 A l) \lfloor l /5\rfloor
                    (_\equiv \lfloor \lfloor l /5\rfloor /2\rfloor)
                    (_\equiv \lfloor \lfloor l-5 /5\rfloor /2\rfloor)
           -> Vec (Indexed A l) (2 + 3 * (l / 10))
-    small s = subst (\lambda k -> Vec _ (2 + 3 * k))
-                  (trans (Split.bound-smaller s)
-                         (\lfloorn/5/2\rfloor\equivn/10 $ 5 + l-5)) $
-              (m5-strictly-smaller $
-                 Indexed.value $ Split.median s) ++
-              (m5-extract-l $
-                 Data.Vec.map Indexed.value $ Split.smaller s)
 
     large :  let l = 5 + l-5 in
              Split (M5 A l) \lfloor l /5\rfloor
                    (_\equiv \lfloor \lfloor l /5\rfloor /2\rfloor)
                    (_\equiv \lfloor \lfloor l-5 /5\rfloor /2\rfloor)
           -> Vec (Indexed A l) (2 + 3 * (l-5 / 10))
-    large s = subst (\lambda k -> Vec _ (2 + 3 * k))
-                  (trans (Split.bound-larger s)
-                         (\lfloorn/5/2\rfloor\equivn/10 l-5)) $
-              (m5-strictly-larger $
-                 Indexed.value $ Split.median s) ++
-              (m5-extract-r $
-                 Data.Vec.map Indexed.value $ Split.larger s)
 
     unk :  let l = 5 + l-5 in
            Split (M5 A l) \lfloor l /5\rfloor
                  (_\equiv \lfloor \lfloor l /5\rfloor /2\rfloor)
                  (_\equiv \lfloor \lfloor l-5 /5\rfloor /2\rfloor)
         -> Vec (Indexed A l) (2 * (l / 10) + 2 * (l-5 / 10))
-    unk s = let l = 5 + l-5 in
-        subst2 (\lambda x y -> Vec _ (2 * x + 2 * y))
-            (trans (Split.bound-smaller s)
-                   (\lfloorn/5/2\rfloor\equivn/10 l))
-            (trans (Split.bound-larger s)
-                   (\lfloorn/5/2\rfloor\equivn/10 l-5)) $
-        (m5-extract-strictly-larger $
-           Data.Vec.map Indexed.value $ Split.smaller s) ++
-        (m5-extract-strictly-smaller $
-           Data.Vec.map Indexed.value $ Split.larger s)
 \end{lstlisting}
 
 Here we finally come to (one half of) the meat of our order statistic algorithm. For our quasi-median function, we first group our vector in ordered sets of five. We then select the \emph{actual} median of these sets, specifying that we want to order them by their middle value.
@@ -252,7 +222,7 @@ Selecting this median takes time $35 \lfloor \frac l 5 \rfloor$. We cast this in
 
 Since the bounds for the size of the smaller and the larger section of quickselect's split are expressed in terms of the \texttt{Fin} number type, we reframe this in the \texttt{Nat} type by showing that the bounds are equivalent to $\lfloor \lfloor \frac l 5 \rfloor / 2 \rfloor$ and $\lfloor \lfloor \frac {l - 5} 5 \rfloor / 2 \rfloor$, respectively.
 
-Finally, we extract the part that we are \emph{sure} is smaller than the selected median-of-medians (the "top left" section of the diagram above) and similarly for the larger section. Everything else, including the leftover elements that we couldn't group into sets of five, end up in the unknown block.
+Finally, we extract the part that we are \emph{sure} is smaller than the selected median-of-medians (the "top left" section in \autoref{fig:median-of-medians}) and similarly for the larger section. Everything else, including the leftover elements that we couldn't group into sets of five, end up in the unknown block.
 
 What remains is largely mathematical proof burden to show that all of our bounds hold.
 
@@ -267,15 +237,15 @@ ordselect-by :  let l = suc l-1 in
 ordselect-by wf-acc f i xs with \leq-total (suc l-1) 8000
 \end{lstlisting}
 
-Finally, we come to an algorithmic sleight of hand: We can only prove that our quickselect bound holds when the length of the input is larger than 8000 \todo{recall why this is the case again}. However, for $l = 8000$, $\lceil \log_2 l \rceil$ is just 13 -- well within our bound! We therefore fall back to the sorting approach for this case, using our linear approach only where we can show it holds.
+Finally, we come to an algorithmic sleight of hand: We can only prove that our quickselect bound holds when the length of the input is larger than 8000: Whether we eliminate the larger or the smaller section of our quasi-median split, we can show that the length of the remainder (smaller and unknown or larger and unknown) is less than $7\lfloor\frac l {10}\rfloor + 9$. To prove our desired bound of $35l$ for the whole of the algorithm, we need to show that recursing on this remainder (nominally $35\cdot(7\lfloor\frac l {10} \rfloor + 9)$) is less than $25l$ -- however, the constant $+~9$ is getting in our way. We can rewrite the length of the vector as $70\lfloor\frac l {100}\rfloor + 79$, which, under the assumption that $l > 800$, is less than $71\lfloor\frac l {100}\rfloor$. With the constant so eliminated, we can eventually prove that the recursive call completes in time $25l$. The full proof is listed below.
+
+However, for $l < 8000$, $\lceil \log_2 l \rceil \leq 13$ -- well within our bound! We therefore fall back to the sorting approach for this case, using our linear approach only where we can show it is within our (generous) bound.
 
 \begin{lstlisting}[caption={Quickselect ($l \leq 8000$)},label={lst:median:quickselect:small},emph={ordselect,by,split,sorted,merge,sort}]
 ordselect-by wf-acc f i xs with \leq-total (suc l-1) 8000
 ... | inj\_1 l\leq8000 = delay-\leq nlogn\leq35n $
                     split-sorted i <$> sorted
   where
-    open \leq-Reasoning
-    open import Nat.Log
     nlogn\leq35n : l * \lceillog\_2 l \rceil \leq 35 * l
     nlogn\leq35n = begin
         l * \lceillog\_2 l \rceil  \leq\langle *-mono\^r-\leq l $
@@ -349,36 +319,38 @@ ordselect-by wf-acc f i xs with \leq-total (suc l-1) 8000
 
 We first select the quasi median of the provided data in time $9l$. We then further split the unknown data set into a larger and a smaller part with respect to this quasi median in time $l$. Finally, we see how the length of the smaller data set compares to the index we are looking for: If the index is smaller, we just select with the same index from the smaller data set. If the index is equal, we simply return the selected quasi median. And if the index is larger, we subtract the size of the smaller data set from the index and use this to select from the larger data set.
 
-As for the run time, we show that selecting the median from the smaller or larger data set, which runs in time $35 \abs{smaller}$ or $35 \abs{larger}$ respectively, is faster than $25l$, which in addition to the quasi median selection and the splitting of the unknown section adds up to at total run time of $35l$.
+As for the run time, we show that selecting the median from the smaller or larger data set, which runs in time $35 \cdot \abs{\mathrm{\texttt{smaller}}}$ or $35 \cdot \abs{\mathrm{\texttt{larger}}}$ respectively, is faster than $25l$, which in addition to the quasi median selection and the splitting of the unknown section adds up to at total run time of $35l$.
 
 Let us inspect this proof for the smaller case. The larger case follows by symmetry.
 
 From the selection of the quasi-median, we know that
 
-\begin{align*}
-    1 + \abs{smaller_q} + \abs{larger_q} + \abs{unknown} &= l\\
-    1 + \abs{larger_q} &\geq 3 \lfloor \frac l {10} \rfloor.
-\end{align*}
+\[1 + \abs{\mathrm{\texttt{smaller}}_q} + \abs{\mathrm{\texttt{larger}}_q} + \abs{\mathrm{\texttt{unknown}}} = l\]
+
+\vskip 1em
+and
+
+\[1 + \abs{\mathrm{\texttt{larger}}_q} \geq 3 \lfloor \frac l {10} \rfloor\]
+
+where $\mathrm{\texttt{smaller}}_q$ and $\mathrm{\texttt{larger}}_q$ represent the Split sections returned by the quasi-median, in contrast with $\mathrm{\texttt{smaller}}_u$, which is the smaller part of the \texttt{unknown} section and $\mathrm{\texttt{smaller}}$, which is the concatenation of the former two.
 
 We split the unknown set into a smaller and a larger set and add it to the smaller and larger set of the quasi median and thus have
 
-\begin{align*}
-    \abs{smaller} &= \abs{smaller_q} + \abs{smaller_u} \\
-    \abs{larger} &= \abs{larger_q} + \abs{larger_u} \\
-    1 + \abs{smaller} + \abs{larger} &= l
-\end{align*}
+\[\abs{\mathrm{\texttt{smaller}}} = \abs{\mathrm{\texttt{smaller}}_q} + \abs{\mathrm{\texttt{smaller}}_u}\]
+\[\abs{\mathrm{\texttt{larger}}} = \abs{\mathrm{\texttt{larger}}_q} + \abs{\mathrm{\texttt{larger}}_u}\]
+\[1 + \abs{\mathrm{\texttt{smaller}}} + \abs{\mathrm{\texttt{larger}}} = l\]
 
-and thus by transitivity of $\leq$
+\vskip 1em
+and by transitivity of $\leq$
 
-\begin{align*}
-    1 + \abs{larger} &\geq 3 \lfloor \frac l {10} \rfloor.
-\end{align*}
+\[1 + \abs{\mathrm{\texttt{larger}}} \geq 3 \lfloor \frac l {10} \rfloor.\]
 
+\vskip 1em
 Now we can show that
 
 \begin{align*}
-    && \abs{smaller} \\
-    &=& l - (1 + \abs{larger} \\
+    && \abs{\mathrm{\texttt{smaller}}} \\
+    &=& l - (1 + \abs{\mathrm{\texttt{larger}}} \\
     &\leq& l - 3 \lfloor \frac l {10} \rfloor \\
     &=& l \bmod 10 + 10 \lfloor \frac l {10} \rfloor - 3 \lfloor \frac l {10} \rfloor \\
     &=& l \bmod 10 + 7 \lfloor \frac l {10} \rfloor \\

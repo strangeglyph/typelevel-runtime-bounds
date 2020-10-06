@@ -38,11 +38,11 @@ contains t@(Fork l x r) val =
     else (height-\equiv (2*m\equivm+m $ size r) $ contains r val)
 \end{lstlisting}
 
-Here we see one of the shortfalls of the current framework. Since we only have a less-or-equal test as primitive operation, to decide equality we need to spend two comparisons. This not only makes the code structure more complicated, it also makes our bound less neat -- which, due to the recursive calls, forces us to add additional proofs.
+Here we see one of the shortcomings of the current framework. Since we only have a less-or-equal test as primitive operation, to decide equality we need to spend two comparisons. This not only makes the code structure more complicated, it also makes our bound less neat -- which, due to the recursive calls, forces us to add additional proofs.
 
-A potential solution to this would be to add a primitive that can decide a case of equality, less or greater in one step. This would result in our bounds no longer being strict upper bounds on the run time of an algorithm, but our timing would still be in the same $\mathcal O$ class, which might be an acceptable trade-off for the flexibility gained.
+A potential solution to this would be to add a primitive that can decide a case of equality, less or greater in one step. Otherwise a wrapper function similar to the alternative if-then-else implementations described in \autoref{ch:detanalysis} in combination with additional support functions for increments-of-two in the depth of a decision tree.
 
-Next, let's look at inserting and removing elements. These operations modify the size of the tree, but not necessarily the height. How do we express this on the type level? The simple answer would be to return a dependent sum of the new height of the tree and the tree itself. However this way we lose more information than necessary: For insertion, either tree retains its height or it grows by one. For removal, the same is true for the other direction: Either it retains its height or it decreases by one.
+Next, let's look at inserting and removing elements. These operations modify the size of the tree, but may or may not affect the height. How do we express this on the type level? The simple answer would be to return a dependent sum of the new height of the tree and the tree itself. However this way we lose more information than necessary: For insertion, either tree retains its height or it grows by one. For removal, the same is true for the other direction: Either it retains its height or it decreases by one.
 
 The data types to represent this look as follows:
 
@@ -58,7 +58,7 @@ data _\langle_\rangle-1? (A : bNat -> Set a) : (n : bNat) -> Set a where
 
 We use \texttt{+0} to denote no growth and \texttt{+1} to denote growth by one step. For the decrement type, we instead use full words because names in Agda can not start with a hyphen.
 
-With this in place we can implement our insertion function:
+With this in place we can implement our insertion function (some function bodies omitted):
 
 \begin{lstlisting}[caption={Tree Insertion},label={lst:tree:insert},emph={Tree,Fork,Leaf,insert,join,return,if,then,else}]
 join-l :  Tree A s\_1 1?+\langle h\_1 \rangle -> A -> Tree A s\_2 h\_2
@@ -91,7 +91,7 @@ insert (Fork l x r) val =
 
 The functions \texttt{join-l} and \texttt{join-r} help us push our maybe-increment operator up a tree level. We will not further concern ourselves with the implementation here.
 
-The actual insertion function is straightforward: Depending on whether the inserted value is smaller or larger than the current root, we insert into the left or right sub-tree and delay the computation so it matches the expected time \texttt{1 + size l + size r} instead of the actual time of \texttt{size l} or \texttt{size r}. The remaining function \texttt{+-suc-t} simply fixes the size of the tree if we insert in the right subtree.
+The actual insertion function is straightforward: Depending on whether the inserted value is smaller or larger than the current root, we insert into the left or right sub-tree and delay the computation so it matches the expected time \texttt{size l + size r} instead of the actual time of \texttt{size l} or \texttt{size r}. The remaining function \texttt{+-suc-t} simply fixes the size of the tree if we insert into the right subtree.
 
 The remaining item for our tree implementation is a removal function, which is not much more complicated than the insertion function. However, first we need to find an algorithm that merges two trees under the assumption that all values in one tree are smaller than all the values in the other tree. We will use this to restore a tree when we remove its root element.
 
@@ -110,9 +110,9 @@ merge l@(Fork _ _ _) r with remove-max l
 
 \end{lstlisting}
 
-The \texttt{remove-max} function does what its name implies: Removing the largest value in a tree and returning it alongside the smaller tree. The merge function uses this to retrieve the largest value from the smaller tree, which is then suitable as a new root of reconstructed tree. The remainder of the implementation is just reasoning about the height of the new tree.
+The \texttt{remove-max} function does what its name implies: Removing the largest value in a tree and returning it alongside the smaller tree. The merge function uses this to retrieve the largest value from the smaller tree, which is then used as the new root of the reconstructed tree. The remainder of the implementation is just reasoning about the height of the new tree.
 
-This example illustrates another shortcoming of our framework: Merging the two trees may take time \texttt{size l}, but since no comparisons of values inside the tree are necessary for it we can hide this time.
+This example illustrates another shortcoming of our framework: Merging the two trees may take time \texttt{size l}, but since no comparisons of values inside the tree are necessary for it we can omit this time from the type-level bound.
 
 \begin{lstlisting}[caption={Tree Removal},label={lst:tree:removal},emph={Tree,Fork,Leaf,RemovalTree,return,if,then,else,neutral,decrement,remove}]
 RemovalTree : Set a -> bNat -> bNat -> Set a
@@ -126,7 +126,7 @@ remove (Fork l x r) val =
     delay-\leq (s\leqs $ comm-\lub\leq+ (size l) (size r)) $
     if val \leq? x
     then height-\equiv (cong suc $ 2*m\equivm+m $ size l) $
-         if' x \leq? val
+         if' x \leq? val -- x \leq val + val \leq x => x \equiv val
          then delay-\leq (z\leqn) $
               return $ remove-merge $ merge l r
          else (remove l val <&> \lambda l' -> remove-join-l l' x r)
@@ -154,4 +154,4 @@ A removal can, but does not need to, decrease both the size and the height of th
 
 The body of \texttt{remove} is similar to \texttt{contains}: Again we check both $val \leq x$ and $x \leq val$ to determine equality. This increases our running time to $2s$ which incurs additional proof burden.
 
-The two distinct cases are finding the element in the tree or removing it from one of the sub trees. In the first case, we simply merge the two sub trees with the algorithm described earlier and then convert the result into a \texttt{RemovalTree}. In the second case we have the functions \texttt{remove-join-l} and \texttt{remove-join-r}, which take the result of the recursive call as well as the current root and the other sub tree and massage this into a \texttt{RemovalTree}. The actual implementation of the two functions is largely uninteresting reasoning about the height of the result compared to that of the other sub tree and is omitted here.
+The two distinct cases are finding the element in the tree or removing it from one of the sub trees. In the first case, we simply merge the two sub trees with the algorithm described earlier and then convert the result into a \texttt{RemovalTree}. In the second case we have the functions \texttt{remove-join-l} and \texttt{remove-join-r}, which take the result of the recursive call as well as the current root and the other sub tree and massage this into a \texttt{RemovalTree}..

@@ -23,11 +23,11 @@ insert e (x :: xs) = if e \leq? x
                      else (x ::_ <$> insert e xs)
 \end{lstlisting}
 
-As we can see, the differences are minor. Let's look at them from top to bottom:
+As we can see, the differences are minor. Let us look at them from top to bottom:
 
 \begin{itemize}
     \item Our original return type is retained, now embedded in the \texttt{DecTree} monad.
-    \item The return type also tells us that reducing this computation will take at most $l$ steps to compute.
+    \item The return type also tells us that reducing this computation will take at most $l$ steps.
     \item In lines 2 and 4, at the end of our recursion, we just need to \texttt{return} the result.
     \item In line 5, since the recursive call now returns a \texttt{DecTree}, we lift the vector append function into the monad using the \texttt{<\$>} operator.
 \end{itemize}
@@ -53,13 +53,13 @@ merge-by f (x ∷ xs) (y ∷ ys) =
             by (cong suc $ sym $ +-suc n' m')
 \end{lstlisting}
 
-Again, our return type tells us several things: We return a computation comparing elements of \texttt{A}, the return type of our key function. The result of our computation will be a vector of the combined length of the two input vectors. And our computation will execute in at most the length of the returned vector.
+Again, our return type tells us several things: We return a computation comparing elements of \texttt{A}, the return type of our key function. The result of our computation will be a vector of the combined length of the two input vectors. And our computation will be time-bounded by the length of the returned vector.
 
 In the base case that one of the two vectors is empty, we can immediately return the other vector. However, since this other vector may have a length of more than zero, and our computation is supposed to take as long as the vector is long, we need to insert a delay.
 
-In the second base case, we additionally have the problem that the length of our result vector is \texttt{suc n + 0}. It is not immediately obvious to Agda that this is equivalent to a vector of length \texttt{suc n}. Fortunately the Agda standard library provides a function \texttt{+-identity$^r$ : n -> n + 0 $\equiv$ n} which we can use to bring the vector into the right shape.
+In the second base case, we additionally have the problem that the length of our result vector is \texttt{suc n + 0}. As we have described in the Background chapter (\autoref{sec:tutorial:equality}), it is not immediately obvious to Agda that this is equivalent to a vector of length \texttt{suc n}. Fortunately the Agda standard library provides a function \texttt{+-identity$^r$ : n -> n + 0 $\equiv$ n} which we can use to bring the vector into the right shape.
 
-In the recursive case we have the issue that the two branches' result types are vectors of length \texttt{suc (n + suc m)} and \texttt{suc (suc n + m)} respectively. Again it is not obvious to Agda that these two expressions are the same, and again we can manually prove it to agda using the built-in function \texttt{+-suc : n -> m -> n + suc m $\equiv$ suc (n + m)}.
+In the recursive case we have the issue that the two branches' result types are vectors of length \texttt{suc (n + suc m)} and \texttt{suc (suc n + m)} respectively. Again it is not clear to Agda that these two expressions are the same, and again we can manually prove it to Agda using the built-in function \texttt{+-suc : n -> m -> n + suc m $\equiv$ suc (n + m)}.
 
 Finally, the time bound for our execution is \texttt{suc (n + suc m $\sqcup$ suc n + m)}, but we want a time bound of \texttt{suc n + suc m}. We therefore manually provide a proof \texttt{$\sqcup$-idem-suc-xy : n -> m -> suc n + m $\sqcup$ n + suc m $\equiv$ n + suc m}.
 
@@ -77,10 +77,12 @@ private
     merge-sort-step f xs@(_ ∷ _ ∷ _) (Acc.acc more) =
         delay-\leq (log\_2n/2-bound _) $ do
             let (left , right) = split xs
+
             sorted-left <- merge-sort-step f left
                     (more \lceil l /2\rceil (n>1=>\ndiv2ceil<n _))
             sorted-right <- merge-sort-step f right
                     (more \lfloor l /2\rfloor (n>0=>\ndiv2floor<n _))
+
             subst (Vec X) (\ndiv2ceil+\ndiv2floor\equivn l) <$>
             merge-by f sorted-left sorted-right
 
@@ -94,12 +96,12 @@ merge-sort-by :  (X -> A)
 merge-sort-by f xs = merge-sort-step f xs $ <-wellFounded l
 \end{lstlisting}
 
-Here we first have to deal with the termination checker. As mentioned in the Background section (\autoref{sec:termination-checking}), the termination checker is limited in what it can show as terminating, and the splitting of a vector in two exceeds these limits.
+Here we first have to deal with the termination checker. As mentioned in the Background chapter (\autoref{sec:termination-checking}), the termination checker is limited in what it can show as terminating, and the splitting of a vector in two exceeds these limits.
 
-In line 4, we are stating that the length of the vector in each call will be strictly decreasing. We prove this in line 13 and 15 with the call to \texttt{more} to produces instances of \texttt{Acc \_<\_ $\lceil$ l /2$\rceil$} and \texttt{Acc \_<\_ $\lfloor$ l /2$\rfloor$} respectively, which allows us to recurse.
+In line 4, we are stating that the length of the vector in each call will be strictly decreasing. We prove this in line 13 and 15 with the call to \texttt{more} to produces instances of \texttt{Acc \_<\_ $\lceil$ l /2$\rceil$} and \texttt{Acc \_<\_ $\lfloor$ l /2$\rfloor$} respectively, which allow us to recurse.
 
 We use do-notation to get a nice syntax for writing our implementation. Do-notation de-sugaring in Agda works on a purely syntactic level. On the one hand, this makes it very easy to use do-notation for custom monad-like data structures - no implementation of an actual monad type is needed, just a function named \texttt{\_>>=\_} in scope. On the other hand, this purely syntactic substitution can lead to obscure errors if multiple instances of \texttt{\_>>=\_} are in scope (for example, for vectors in addition to \texttt{DecTree}) or if the type of \texttt{\_>>=\_} is subtly incorrect.
 
 We split the vector in two in line 11 (using a let-binding, since the split function uses no comparisons and thus falls outside our framework). We then sort the two vectors (line 12, 14) and merge the results (line 17). The result of the merge operation is a vector of length $\lceil \frac l 2 \rceil + \lfloor \frac l 2 \rfloor$ and we substitute it for one of length $l$ to match our intended result type in line 16.
 
-The formal run time of our implementation is $\cldiv l * \log_2 \cldiv l + \fldiv l * \log_2 \fldiv l + \cldiv l + \fldiv l$. We bound this from above by $l * \log_2 l$ in line 10 to derive our final bound.
+The actual run time of our implementation is $\cldiv l * \log_2 \cldiv l + \fldiv l * \log_2 \fldiv l + \cldiv l + \fldiv l$. We bound this from above by $l * \log_2 l$ in line 10 to derive our final bound.
