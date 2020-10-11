@@ -56,9 +56,9 @@ merge-by f (x ∷ xs) (y ∷ ys) =
             by (cong suc $ sym $ +-suc n' m')
 \end{lstlisting}
 
-Again, our return type tells us several things: We return a computation comparing elements of \texttt{A}, the return type of our key function. The result of our computation will be a vector of the combined length of the two input vectors. And our computation will be time-bounded by the length of the returned vector.
+Again, our return type tells us several things: We return a computation comparing elements of \texttt{A}, the return type of our key function. The result of our computation will be a vector of the combined length of the two input vectors. Additionally, our computation will be time-bounded by the length of the returned vector.
 
-In the base case that one of the two vectors is empty, we can immediately return the other vector. However, since this other vector may have a length of more than zero, and our computation is supposed to take as long as the vector is long, we need to insert a delay.
+In the base case that one of the two vectors is empty, we can immediately return the other vector. However, since this other vector may have a non-zero length, and our computation is supposed to take $n$ steps where $n$ is the length of the vector, we need to insert a delay.
 
 In the second base case, we additionally have the problem that the length of our result vector is \texttt{suc n + 0}. As we have described in the Background chapter (\autoref{sec:tutorial:equality}), it is not immediately obvious to Agda that this is equivalent to a vector of length \texttt{suc n}. Fortunately the Agda standard library provides a function \texttt{+-identity$^r$ : n -> n + 0 $\equiv$ n} which we can use to bring the vector into the right shape.
 

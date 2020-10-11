@@ -164,9 +164,9 @@ ordselect-by :  let l = suc l-1 in
 
 Since our functions are mutually recursive, we have to pass an accessibility proof again. As with our sorting algorithms, we will show termination by way of the length of the vector.
 
-Our elimination function will return a quasi-median (lines 1-4): A split that guarantees that 30\% (strictly speaking: $3\lfloor \frac l {10}\rfloor$) of elements are smaller and greater than the selected median value. We furthermore guarantee that this is achievable in linear time with constant factor 9 (line 10).
+Our elimination function will return a quasi-median (lines 1-4): A split that guarantees that 30\% (strictly speaking: $3 \cdot \lfloor \frac l {10}\rfloor$) of elements are smaller and greater than the selected median value. We furthermore guarantee that this is achievable in linear time with constant factor 9 (line 10).
 
-In a similar vein, our ordselect (\emph{order statistic selection}) algorithm will return a split that guarantees that exactly $i$ elements are smaller than the $i$th order statistic and the remaining $l - i - 1$ elements are larger (lines 12-15). This, too, is achievable in linear time, with constant factor 35.
+In a similar vein, our ordselect (\emph{order statistic selection}) algorithm will return a split that guarantees that exactly $i$ elements are smaller than the $i$th order statistic and the remaining $l - i - 1$ elements are larger (lines 12-15). This too, is achievable in linear time, with constant factor 35.
 
 \newpage
 \begin{lstlisting}[caption={Quasi-median},label={lst:median:quasimedian}]
@@ -248,7 +248,7 @@ ordselect-by :  let l = suc l-1 in
 ordselect-by wf-acc f i xs with \leq-total (suc l-1) 8000
 \end{lstlisting}
 
-Finally, we come to an algorithmic sleight of hand: We can only prove that our quickselect bound holds when the length of the input is larger than 8000 (\autoref{lst:median:quickselect}, line 8): Whether we eliminate the larger or the smaller section of our quasi-median split, we can show that the length of the remainder (smaller and unknown or larger and unknown) is less than $7\lfloor\frac l {10}\rfloor + 9$. To prove our desired bound of $35l$ for the whole of the algorithm, we need to show that recursing on this remainder (nominally $35\cdot(7\lfloor\frac l {10} \rfloor + 9)$) is less than $25l$. However, the constant $+~9$ is getting in our way. We can rewrite the length of the vector as $70\lfloor\frac l {100}\rfloor + 79$, which, under the assumption that $l > 800$, is less than $71\lfloor\frac l {100}\rfloor$. With the constant so eliminated, we can eventually prove that the recursive call completes in time $25l$. The full proof is listed below.
+Finally, we come to an algorithmic sleight of hand: We can only prove that our quickselect bound holds when the length of the input is larger than 8000 (\autoref{lst:median:quickselect}, line 8): Whether we eliminate the larger or the smaller section of our quasi-median split, we can show that the length of the remainder (smaller and unknown or larger and unknown) is less than $7 \cdot \lfloor\frac l {10}\rfloor + 9$. To prove our desired bound of $35l$ for the whole of the algorithm, we need to show that recursing on this remainder (nominally $35\cdot(7 \cdot \lfloor\frac l {10} \rfloor + 9)$) is less than $25l$. However, the constant $+~9$ is getting in our way. We can rewrite the length of the vector as $70 \cdot \lfloor\frac l {100}\rfloor + 79$, which, under the assumption that $l > 800$, is less than $71 \cdot \lfloor\frac l {100}\rfloor$. With the constant so eliminated, we can eventually prove that the recursive call completes in time $25l$. The full proof is listed below.
 
 However, for $l < 8000$, $\lceil \log_2 l \rceil$ is always below $13$ -- well within our bound! We therefore fall back to the sorting approach for this case, using our linear approach only where we can show it is within our (generous) bound.
 
@@ -344,7 +344,7 @@ From the selection of the quasi-median, we know that
 \vskip 1em
 and
 
-\[1 + \abs{\mathrm{\texttt{larger}}_q} \geq 3 \lfloor \frac l {10} \rfloor\]
+\[1 + \abs{\mathrm{\texttt{larger}}_q} \geq 3 \cdot \lfloor \frac l {10} \rfloor\]
 
 where $\mathrm{\texttt{smaller}}_q$ and $\mathrm{\texttt{larger}}_q$ represent the Split sections returned by the quasi-median, in contrast with $\mathrm{\texttt{smaller}}_u$, which is the smaller part of the \texttt{unknown} section and $\mathrm{\texttt{smaller}}$, which is the concatenation of the former two.
 
@@ -357,7 +357,7 @@ We split the unknown set into a smaller and a larger set and add it to the small
 \vskip 1em
 and by transitivity of $\leq$
 
-\[1 + \abs{\mathrm{\texttt{larger}}} \geq 3 \lfloor \frac l {10} \rfloor.\]
+\[1 + \abs{\mathrm{\texttt{larger}}} \geq 3 \cdot \lfloor \frac l {10} \rfloor.\]
 
 \vskip 1em
 Now we can show that
@@ -365,28 +365,28 @@ Now we can show that
 \begin{alignat*}{1}
     &\quad \abs{\mathrm{\texttt{smaller}}} \\
     =&\quad l - (1 + \abs{\mathrm{\texttt{larger}}}) \\
-    \leq&\quad l - 3 \lfloor \frac l {10} \rfloor \\
-    =&\quad l \bmod 10 + 10 \lfloor \frac l {10} \rfloor - 3 \lfloor \frac l {10} \rfloor \\
-    =&\quad l \bmod 10 + 7 \lfloor \frac l {10} \rfloor \\
-    \leq&\quad 7 \lfloor \frac l {10} \rfloor + 9.
+    \leq&\quad l - 3 \cdot \lfloor \frac l {10} \rfloor \\
+    =&\quad l \bmod 10 + 10 \cdot \lfloor \frac l {10} \rfloor - 3 \cdot \lfloor \frac l {10} \rfloor \\
+    =&\quad l \bmod 10 + 7 \cdot \lfloor \frac l {10} \rfloor \\
+    \leq&\quad 7 \cdot \lfloor \frac l {10} \rfloor + 9.
 \end{alignat*}
 
 Under the assumption that $l \geq 8000$, we can further generalize this to
 
 \begin{alignat*}{1}
-    &\quad 7 \lfloor \frac l {10} \rfloor + 9 \\
-    =&\quad 7 \lfloor \frac {10l} {100} \rfloor + 9 \\
-    \leq&\quad 70 \lfloor \frac {l} {100} \rfloor + 79 \\
-    \leq&\quad 70 \lfloor \frac {l} {100} \rfloor + \lfloor \frac {8000} {100} \rfloor \\
-    \leq&\quad 70 \lfloor \frac {l} {100} \rfloor + \lfloor \frac {l} {100} \rfloor \\
-    =&\quad 71 \lfloor \frac {l} {100} \rfloor.
+    &\quad 7 \cdot \lfloor \frac l {10} \rfloor + 9 \\
+    =&\quad 7 \cdot \lfloor \frac {10l} {100} \rfloor + 9 \\
+    \leq&\quad 70 \cdot \lfloor \frac {l} {100} \rfloor + 79 \\
+    \leq&\quad 70 \cdot \lfloor \frac {l} {100} \rfloor + \lfloor \frac {8000} {100} \rfloor \\
+    \leq&\quad 70 \cdot \lfloor \frac {l} {100} \rfloor + \lfloor \frac {l} {100} \rfloor \\
+    =&\quad 71 \cdot \lfloor \frac {l} {100} \rfloor.
 \end{alignat*}
 
 And thus selecting an order statistic from the smaller set takes time
 
 \begin{alignat*}{1}
     &\quad 35 \cdot 71 \cdot \lfloor \frac {l} {100} \rfloor \\
-    \leq&\quad 2500 \lfloor \frac {l} {100} \rfloor \\
+    \leq&\quad 2500 \cdot \lfloor \frac {l} {100} \rfloor \\
     \leq&\quad 25 l.
 \end{alignat*}
 

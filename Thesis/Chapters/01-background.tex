@@ -131,7 +131,7 @@ record Rec (A : Set a) : Set a where
 \end{lstlisting}
 \end{minipage}
 
-Just like data types, records can be parameterized by values (in our example, the type \texttt{A}) and inhabit different universes (in our example, \texttt{Set a}). Field declarations are prefixed by the keyword \texttt{field} and then consist of name-type pairs (lines 3-5). The names can be wrapped into curly braces to denote implicit fields and later fields can reference earlier fields. Record values are constructed using the \texttt{record} keyword as \texttt{record \{ field$_1$ = val ; ... \}}, the intended type is inferred from context. Optionally a named constructor can be introduced using the \texttt{constructor} keyword (line 2).
+Just like data types, records can be parameterized by values (in our example, the type \texttt{A}) and inhabit different universes (in our example, \texttt{Set a}). Field declarations are prefixed by the keyword \texttt{field} and then consist of name-type pairs (\autoref{lst:tutorial:record}, lines 3-5). The names can be wrapped into curly braces to denote implicit fields and later fields can reference earlier fields. Record values are constructed using the \texttt{record} keyword as \texttt{record \{ field$_1$ = val ; ... \}}, the intended type is inferred from context. Optionally a named constructor can be introduced using the \texttt{constructor} keyword (line 2).
 
 The usual functional aspects like pattern matching and higher order functions work as expected:
 
@@ -156,7 +156,7 @@ By default Agda checks for termination by way of structural recursion. As a firs
 
 This recursion structure is often applicable, but there are times where it is insufficient. Consider for example the following implementation of a base 2 logarithm\footnote{Note the rounding brackets in the function name - Agda permits a wide range Unicode symbols in names} (setting $\log_2 0 \coloneqq 0$ for simplicity's sake):
 
-\begin{lstlisting}[caption={Base 2 Logarithm},label={lst:tutorial:log},emph={log}]
+\begin{lstlisting}[caption={Base 2 Logarithm (failing termination check)},label={lst:tutorial:log},emph={log}]
 \lfloorlog\_2_\rfloor : bNat -> bNat
 \lfloorlog\_2 0 \rfloor = 0
 \lfloorlog\_2 1 \rfloor = 0
@@ -212,7 +212,7 @@ Essentially, we can show an element \texttt{x} accessible under some relation \t
 
 We can leverage this type to show that our log function terminates:
 
-\begin{lstlisting}[caption={Base 2 Logarithm},label={lst:tutorial:log:2},emph={log,step},add to literate={s\\leqs}{{s\(\leq\)s}}3{z\\leqn}{{z\(\leq\)n}}3{<=>\\leq}{{<\(\Rightarrow\leq\)}}3]
+\begin{lstlisting}[caption={Base 2 Logarithm (manual proof of termination)},label={lst:tutorial:log:2},emph={log,step},add to literate={s\\leqs}{{s\(\leq\)s}}3{z\\leqn}{{z\(\leq\)n}}3{<=>\\leq}{{<\(\Rightarrow\leq\)}}3]
 n>0=>\lfloorn/2\rfloor<n : (n : bNat) -> \lfloor suc n /2\rfloor < suc n
 n>0=>\lfloorn/2\rfloor<n 0 = s\leqs z\leqn
 n>0=>\lfloorn/2\rfloor<n 1 = s\leqs (s\leqs z\leqn)
@@ -229,7 +229,7 @@ n>0=>\lfloorn/2\rfloor<n (suc (suc n)) = s\leqs (s\leqs (<=>\leq (n>0=>\lfloorn/
 \end{lstlisting}
 
 
-In line 1-4, we are showing that $\lfloor \frac n 2 \rfloor$ is strictly smaller than $n$ for $n > 0$. Note that since Agda is very liberal in what characters it permits in an identifier, we can use the descriptive name \texttt{n>0=>$\lfloor$n/2$\rfloor$<n} for our function.
+In line 1-4 in \autoref{lst:tutorial:log:2}, we are showing that $\lfloor \frac n 2 \rfloor$ is strictly smaller than $n$ for $n > 0$. Note that since Agda is very liberal in what characters it permits in an identifier, we can use the descriptive name \texttt{n>0=>$\lfloor$n/2$\rfloor$<n} for our function.
 
 The type \texttt{\_<\_} contains a proof that one number is less than another and is defined as \texttt{n < m = suc n $\leq$ m} while \texttt{\_$\leq$\_} is defined as:
 

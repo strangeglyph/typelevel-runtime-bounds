@@ -8,7 +8,7 @@ After having talked about deterministic worst-case bounds, let us now turn towar
 There are two main approaches to an amortized analysis: the banker's method and the potential method. They differ largely in how the calculate the cost for an individual operation. We will use the potential method in this thesis as it is more intuitive to implement.
 
 \section{The Potential Method}
-Intuitively, the potential method assigns to a data structure a measure of ``potential energy". An operation should generally increase this potential method when it takes little time. Conversely, an operation that takes a long time should use this accumulated potential energy to offset its cost. In the example above, an insert operation while there is still capacity would increase the potential by one. An insertion involving reallocating the list would reduce the potential by the number of elements in the list.
+Intuitively, the potential method assigns to a data structure a measure of  ``potential energy". An operation should generally increase this potential method when it takes little time. Conversely, an operation that takes a long time should use this accumulated potential energy to offset its cost. In the example above, an insert operation while there is still capacity would increase the potential by one. An insertion involving reallocating the list would reduce the potential by the number of elements in the list.
 
 Let $S$ be a data structure. The potential method assigns a potential to every element $s \in S$ via a map $\varphi : S \rightarrow D$, where $D$ is some numerical domain. In this thesis, we will use $\mathbb N$ but using $\mathbb Q$ or $\mathbb R$ is equally possible. We ask two things of $\varphi$:
 
@@ -110,7 +110,7 @@ Three additional constructors allow us to be more flexible in our handling of am
 \subsection{A Note on Indexed Types}
 An observant reader might notice that we use specifically indexed types. Why is that?
 
-Consider the case of Agda's \texttt{Vec (A : Set) : $\mathbb N$ -> Set}. This is a \emph{family} of indexed types and \texttt{Vec A 0} and \texttt{Vec A 1} are distinct types. That means if we used simple types in our definition of \texttt{Amortized}, we'd need separate instances of it for all vectors of different lengths -- including distinct minimum elements.
+Consider the case of Agda's \texttt{Vec (A : Set) : $\mathbb N$ -> Set}. This is a \emph{family} of indexed types and \texttt{Vec A 0} and \texttt{Vec A 1} are distinct types. That means if we used simple types in our definition of \texttt{Amortized}, we would need separate instances of it for all vectors of different lengths -- including distinct minimum elements.
 
 Instead we allow for a family of indexed type with one parameter. For example, this allows us to generalize over vectors of arbitrary length for some fixed type, but not over vectors of arbitrary lengths and arbitrary types. Finding a way to be generic in the number of parameters to our family of indexed types would have been ideal, but we were not able to find such a method within the time constraints of this thesis. Allais (\cite{allais:2019:polymorphic-nary-functions}) had a promising approach that we were unable to evaluate before the deadline. Instead, as a proof of concept for this thesis, we special cased our framework to indexed families with one and with two parameters.
 

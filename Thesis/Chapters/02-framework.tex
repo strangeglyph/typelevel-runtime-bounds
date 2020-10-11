@@ -3,7 +3,7 @@
 
 \chapter{Deterministic Analysis}
 \label{ch:detanalysis}
-It is hard to develop a framework that makes it impossible for programmers to circumvent the restrictions placed on them and thus invalidate the guarantees of the runtime bounds. Fundamentally, the problem is that in a general purpose programming language, the programmer is permitted to perform any computation at any point in time. How then do we ensure that a programmer doesn't solve a given problem entirely outside the framework, only to wrap the solution in our desired type at the end?
+It is hard to develop a framework that makes it impossible for programmers to circumvent the restrictions placed on them and thus invalidate the guarantees of the runtime bounds. Fundamentally, the problem is that in a general purpose programming language, the programmer is permitted to perform any computation at any point in time. How then do we ensure that a programmer does not solve a given problem entirely outside the framework, only to wrap the solution in our desired type at the end?
 
 When we cannot restrict the power of the programmer, we must instead turn towards hiding information. Specifically, if the algorithm only operates on abstract data (if it is polymorphic in the input data), it has no way of inspecting it in detail. In particular, an algorithm will not be able to \emph{compare} any two instances of data given to it. We then supply our framework with an operation that simulates a comparison which can be used as a replacement. This operation is counted as one unit of time; the total time for an algorithm is the number of comparisons executed. The caller of a function can then later specify how to order any two elements and thus complete the computation.
 
@@ -71,7 +71,7 @@ data DecTree ... where
                      -> DecTree Compare B (1 + (h1 \lub h2))
 \end{lstlisting}
 
-Finally, we have the constructor that gives our monad its name: the constructor \texttt{if\_$\leq$?\_then\_else\_} takes two values to be compared (line 5), as well as two computations (lines 6-7) representing the left and the right branch of our if-statement.
+Finally, we have the constructor that gives our monad its name: the constructor \texttt{if\_$\leq$?\_then\_else\_} takes two values to be compared (\autoref{lst:dectree:4}, line 5), as well as two computations (lines 6-7) representing the left and the right branch of our if-statement.
 
 When evaluating this node, \texttt{compLeft} and \texttt{compRight} will be compared to each other. If the first element is less than or equal to the second element, the left branch will be evaluated, otherwise the second computation.
 
@@ -142,7 +142,7 @@ height-\equiv {C = C} {R = R} pf = subst (DecTree C R) pf
 \end{lstlisting}
 \end{minipage}
 
-Given a proof that two numbers are equal and a decision tree of one height, we can substitute its height for the other. This comes up quite often because the transformations that Agda does by default are limited to definitional equalities and we often need more complicated notions of equality.
+Given a proof that two numbers are equal and a decision tree of one height, we can substitute its height for the other (\autoref{lst:dectree:height-equiv}). This comes up quite often because the transformations that Agda does by default are limited to definitional equalities and we often need more complicated notions of equality.
 
 \begin{lstlisting}[caption={Functor implementation for DecTree},label={lst:dectree:functor},emph={DecTree,return,height}]
 _<$>_ : (R' -> R) -> DecTree C R' h-> DecTree C R h
@@ -153,7 +153,7 @@ _<&>_ :  DecTree C R' h -> (R' -> R) -> DecTree C R h
 t <&> f = f <$> t
 \end{lstlisting}
 
-If we can directly transform the result of one computation into something else without requiring a second computation, we can do that using the functor implementation of \texttt{DecTree}. In line 3, the binding of a computation with duration $h$ to a return yields a computation of duration $h + 0$. As mentioned in \label{sec:tutorial:equality}, Agda cannot directly transform this into $h$, thus we substitute the height manually with the standard library's proof \texttt{+-identity$^r$} that the two are indeed equal.
+If we can directly transform the result of one computation into something else without requiring a second computation, we can do that using the functor implementation of \texttt{DecTree} (\autoref{lst:dectree:functor}). In line 3, the binding of a computation with duration $h$ to a return yields a computation of duration $h + 0$. As mentioned in \autoref{sec:tutorial:equality}, Agda cannot directly transform this into $h$, thus we substitute the height manually with the standard library's proof \texttt{+-identity$^r$} that the two are indeed equal.
 
 \begin{lstlisting}[caption={Delay functions},label={lst:dectree:delay},emph={DecTree,delay',delay,height},add to literate={d\\leqd'}{{d\(\leq\)d'}}4]
 delay' : (d : bNat) -> DecTree C R h -> DecTree C R (d + h)
@@ -165,7 +165,7 @@ delay-\leq d\leqd' tree = case diff d\leqd' of λ (Diff n by pf) ->
                     height-\equiv pf $ delay n tree
 \end{lstlisting}
 
-Convenience methods for inserting delays allow us to swap the delay and the height parameter as well as giving us a way to delay a computation based on some upper bound.
+Convenience methods for inserting delays allow us to swap the delay and the height parameter as well as giving us a way to delay a computation based on some upper bound (\autoref{lst:dectree:delay}).
 
 \begin{lstlisting}[caption={Alternatives to if-then-else},label={lst:dectree:ifthenelse-alt},emph={if,then,else,by,DecTree,\_then\_else\_by\_,\[\_\]\_}]
 if[_]_\leq?_then_else_by_ :  (R : Idx -> Set b)
@@ -181,7 +181,7 @@ if[ R ] a \leq? b then left else right by proof =
         else subst (\lambda i -> DecTree C (R i) h) proof right
 \end{lstlisting}
 
-If the two branches return types that are not definitionally equal but can be manually shown to be equal, then given that proof, we can convert the second into the first.
+If the two branches return types that are not definitionally equal but can be manually shown to be equal, then given that proof, we can convert the second into the first (\autoref{lst:dectree:ifthenelse-alt}).
 
 \begin{lstlisting}[caption={Alternatives to if-then-else},label={lst:dectree:ifthenelse-alt:2},emph={if'\_,\_then\_else\_,if,then,else,DecTree}]
 if'_\leq?_then_else_ : (a b : C)
@@ -192,4 +192,4 @@ if' a \leq? b then left else right =
         if x \leq? y then left else right
 \end{lstlisting}
 
-If the two branches return computations of equal length, we can omit the maximum.
+If the two branches return computations of equal length, we can omit the maximum (\autoref{lst:dectree:ifthenelse-alt:2}).
