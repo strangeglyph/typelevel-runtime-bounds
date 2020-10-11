@@ -8,22 +8,26 @@
 	{Modelling Resource Constraints in a Dependently Typed Language}
 }
 
+\newcommand{\titlegerman}{Modellieren von Resourcenschranken in Sprachen mit abhängigen Typsystemen}
+
 \author{Lia Schütze}
 
 \begin{document}
-    \maketitle
+    %\maketitle
 
-    \begin{abstract}
-	   The rise of dependently typed language offers the opportunity to formally verify resource constraints such as memory usage of data structures and runtime bounds of algorithms. We investigate how to leverage the type system to encode correct-by-construction upper bounds for the runtime of different algorithms.
+    \input{Preamble/0000-cover.tex}
+    \input{Preamble/0003-abstract.tex}
+    \input{Preamble/0005-eid.tex}
+    \input{Preamble/0007-acknowledgements.tex}
 
-       \bigskip
-       \noindent\rule{\linewidth}{.5pt}
-       \bigskip
-
-       Sprachen mit abhänigen Typsystemen erlauben uns, Beschränkungen von Resourcen wie zum Beispiel Speicherverbrauch und Laufzeitschranken von Algorithmen formal zu verifizien. Wir untersuchen, wie man solche Typsysteme nutzen kann, um obere Schranken per Konstruktion korrekt im Rückgabetype von Funktionen kodieren kann.
-	\end{abstract}
+    \newpage
+    \pagenumbering{roman}
+    \setcounter{page}{0}
 
 	\tableofcontents
+
+    \pagenumbering{arabic}
+    \setcounter{page}{1}
 
 	\input{Chapters/00-introduction.tex}
     \input{Chapters/01-background.tex}

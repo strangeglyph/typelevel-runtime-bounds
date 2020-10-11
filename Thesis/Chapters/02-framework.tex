@@ -5,19 +5,20 @@
 \label{ch:detanalysis}
 It is hard to develop a framework that makes it impossible for programmers to circumvent the restrictions placed on them and thus invalidate the guarantees of the runtime bounds. Fundamentally, the problem is that in a general purpose programming language, the programmer is permitted to perform any computation at any point in time. How then do we ensure that a programmer doesn't solve a given problem entirely outside the framework, only to wrap the solution in our desired type at the end?
 
-When we can't restrict the power of the programmer, we must instead turn towards hiding information. Specifically, if the algorithm only operates on abstract data (if it is polymorphic in the input data), it has no way of inspecting it in detail. In particular, an algorithm won't be able to \emph{compare} any two instances of data given to it. We then supply our framework with an operation that simulates a comparison which can be used as a replacement. This operation is counted as one unit of time; the total time for an algorithm is the number of comparisons executed. The caller of a function can then later specify how to order any two elements and thus complete the computation.
+When we cannot restrict the power of the programmer, we must instead turn towards hiding information. Specifically, if the algorithm only operates on abstract data (if it is polymorphic in the input data), it has no way of inspecting it in detail. In particular, an algorithm will not be able to \emph{compare} any two instances of data given to it. We then supply our framework with an operation that simulates a comparison which can be used as a replacement. This operation is counted as one unit of time; the total time for an algorithm is the number of comparisons executed. The caller of a function can then later specify how to order any two elements and thus complete the computation.
 
-There are limitations to this approach of course. For one, it only works where comparisons are an central operation and a relevant metric for measuring execution time. Fortunately, this is true for a broad class of algorithms - for example most sorting algorithms.
+There are limitations to this approach of course. For one, it only works where comparisons are a central operation and a relevant metric for measuring execution time. Fortunately, this is true for a broad class of algorithms -- for example most sorting algorithms.
 
-Secondly, it only works for functions which are not aware what kind of data they are manipulating. Therefore it is possible to create e.g. a sorting function specialized for integers which is able to compare elements outside our framework.
+Secondly, it only works for functions which are not aware what kind of data they are manipulating. Therefore it is possible to create for example a sorting function specialized for integers which is able to compare elements outside our framework.
 
-Lastly, this framework, and especially the proof burden for the runtime bounds means there is a certain overhead associated with our framework. We can show that the time to evaluate a computation within our framework is asymptotically the same as if it were implemented directly as long as computational steps between comparisons are constant time. However since the construction of proof objects is usually outside the framework, we cannot guarantee that this holds in general.
+Lastly, this framework and especially the proof burden for the runtime bounds means there is a certain overhead associated with our framework. Within limits we can show that the time to evaluate a computation within our framework is asymptotically the same as if it were implemented directly. However this only holds as long as computational steps between comparisons are constant time. We cannot guarantee that this holds in general.
 
 Here is the type signature of the data structure that will form the core of our framework. It represents a decision tree where the nodes are individual computational steps and forks are comparisons where, depending on the result of the comparison we continue with the left or right branch:
 
-\begin{lstlisting}[caption={The DecTree Monad},label={lst:dectree:1},emph={DecTree,Set,Level}]
+\begin{lstlisting}[caption={The DecTree monad (signature)},label={lst:dectree:1},emph={DecTree,Set,Level}]
 data DecTree (Compare : Set a) (B : Set b) :
-             (height : bNat) -> Set (Level.suc (a Level.\lub b)) where
+             (height : bNat) -> Set (Level.suc (a Level.\lub b))
+    where
     ...
 \end{lstlisting}
 
@@ -25,7 +26,7 @@ Our book-keeping monad is parameterized by two types: \texttt{Compare}, the type
 
 Our monad has four constructors:
 
-\begin{lstlisting}[caption={The DecTree Monad},label={lst:dectree:2},emph={DecTree,return}]
+\begin{lstlisting}[caption={The DecTree monad (base constructor)},label={lst:dectree:2},emph={DecTree,return}]
 data DecTree ... where
     ...
     -- Base element
@@ -34,7 +35,7 @@ data DecTree ... where
 
 A simple return, lifting a value into the monad. Returning a value does not cost any time.
 
-\begin{lstlisting}[caption={The DecTree Monad},label={lst:dectree:3},emph={DecTree}]
+\begin{lstlisting}[caption={The DecTree monad (bind)},label={lst:dectree:3},emph={DecTree}]
 data DecTree ... where
     ...
     -- Monadic bind
@@ -47,7 +48,7 @@ data DecTree ... where
 
 We also have a monadic bind, which allows us to chain computations. The return type of the two computations can be different, but the comparison type must be the same so we can evaluate both computations later. The time to compute two chained computations is simply the sum of the individual times.
 
-\begin{lstlisting}[caption={The DecTree Monad},label={lst:dectree:4},emph={DecTree,delay}]
+\begin{lstlisting}[caption={The DecTree monad (delay)},label={lst:dectree:4},emph={DecTree,delay}]
 data DecTree ... where
     ...
     -- Arbitrary delay
@@ -57,9 +58,9 @@ data DecTree ... where
           -> DecTree Compare B (h + d)
 \end{lstlisting}
 
-We can insert arbitrary delays into a computations. Semantically this is fine since the only guarantee we provide is an \emph{upper} bound on the runtime and thus raising that bound is not a problem. Practically, this is going to help us give cleaner bounds.
+We can insert arbitrary delays into a computations. Semantically, this is fine since the only guarantee we provide is an \emph{upper} bound on the runtime and thus raising that bound is not a problem. Practically, this is going to help us give cleaner bounds.
 
-\begin{lstlisting}[caption={The DecTree Monad},label={lst:dectree:5},emph={DecTree,if,then,else}]
+\begin{lstlisting}[caption={The DecTree monad (branching)},label={lst:dectree:5},emph={DecTree,if,then,else}]
 data DecTree ... where
     ...
     -- Decision node
@@ -70,40 +71,58 @@ data DecTree ... where
                      -> DecTree Compare B (1 + (h1 \lub h2))
 \end{lstlisting}
 
-Finally, we have the constructor that gives our monad its name: \texttt{if\_$\leq$?\_then\_else\_} takes two values to be compared, as well as two computations. When evaluating this node, the two elements will be compared and the first computation evaluated if the first element is smaller or equal to the second element, otherwise the second computation. The time to evaluate this computation is one (for the comparison executed here) plus however long the sub-computations take.
+Finally, we have the constructor that gives our monad its name: the constructor \texttt{if\_$\leq$?\_then\_else\_} takes two values to be compared (line 5), as well as two computations (lines 6-7) representing the left and the right branch of our if-statement.
+
+When evaluating this node, \texttt{compLeft} and \texttt{compRight} will be compared to each other. If the first element is less than or equal to the second element, the left branch will be evaluated, otherwise the second computation.
+
+The time to evaluate this computation is one (for the comparison executed here) plus however long the branches take.
 
 The evaluation of a computation is straightforward:
 
-\begin{lstlisting}[caption={Evaluating the Monad},label={lst:dectree-eval:1},emph={reduce,DecTree}]
+\begin{lstlisting}[caption={Evaluating the monad},label={lst:dectree-eval:1},emph={reduce,DecTree}]
 reduce :  {h : bNat}
        -> {{_ : Leq Compare}}
        -> DecTree Compare Result h
        -> Result
 \end{lstlisting}
 
-We pass to the reduction function our decision tree and a way to compare elements in the tree (\texttt{Leq Compare} brings into scope the function \texttt{\_<=\_ : Compare -> Bool}).
+We pass to the reduction function our decision tree and a way to compare elements in the tree. The notation \texttt{\{\{name : Type\}\}} represents an \emph{instance arguments}. Instance arguments can be explicitly passed, but if there is a unique instance of a matching type in scope, Agda will pass it automatically\footnote{Instances are either instance arguments or functions marked with the \texttt{instance} keyword}.
+
+The module \texttt{Leq} provides the following:
+
+\begin{lstlisting}[caption={Module Leq},label={lst:dectree:leq},emph={Leq}]
+record Leq (A : Set a) : Set a where
+    field leq : A -> A -> Bool
+
+_<=_ : {{_ : Leq A}} -> A -> A -> Bool
+_<=_ {{leqA}} x y = Leq.leq leqA x y
+\end{lstlisting}
+
+On the one hand, we have the record \texttt{Leq} which contains the actual comparison function. On the other hand, we have the function \texttt{\_<=\_} which takes as an instance argument an instance of \texttt{Leq A} and uses it to perform a comparison.
+
+In \texttt{reduce}, since we have an instance of \texttt{Leq A} in scope, it will automatically be passed to \texttt{\_<=\_} enabling us to compare elements with minimal syntactic overhead.
 
 
-\begin{lstlisting}[caption={Evaluating the Monad},label={lst:dectree-eval:2},emph={reduce,DecTree,return}]
+\begin{lstlisting}[caption={Evaluating returns},label={lst:dectree-eval:2},emph={reduce,DecTree,return}]
 reduce (return x) = x
 \end{lstlisting}
 
 Evaluating a \texttt{return} is straightforward.
 
 
-\begin{lstlisting}[caption={Evaluating the Monad},label={lst:dectree-eval:3},emph={reduce,DecTree}]
+\begin{lstlisting}[caption={Evaluating bindings},label={lst:dectree-eval:3},emph={reduce,DecTree}]
 reduce (tree >>= transform) = reduce (transform (reduce tree))
 \end{lstlisting}
 
 To evaluate a bind, we evaluate the first computation, apply the bound function and then evaluate the result again.
 
-\begin{lstlisting}[caption={Evaluating the Monad},label={lst:dectree-eval:4},emph={reduce,DecTree,delay}]
+\begin{lstlisting}[caption={Evaluating delays},label={lst:dectree-eval:4},emph={reduce,DecTree,delay}]
 reduce (delay _ x) = reduce x
 \end{lstlisting}
 
 A \texttt{delay} has no effect on evaluation.
 
-\begin{lstlisting}[caption={Evaluating the Monad},label={lst:dectree-eval:5},emph={reduce,DecTree,if,then,else}]
+\begin{lstlisting}[caption={Evaluating branches},label={lst:dectree-eval:5},emph={reduce,DecTree,if,then,else}]
 reduce (if x \leq? y then left else right) with x <= y
 ...                 | true = reduce left
 ...                 | false = reduce right
@@ -111,19 +130,21 @@ reduce (if x \leq? y then left else right) with x <= y
 
 For a comparison, we use the comparison function \texttt{\_<=\_} made accessible by \texttt{Leq Compare} and, depending on the result, evaluate the left or the right branch.
 
-The structure of the reduction function makes it clear that the time spent evaluating a computation is asymptotically bounded by the depth of the tree, as long as all \texttt{transform} functions take constant time and barring excessive use of zero-delay \texttt{delay}s.
+The structure of the reduction function makes it clear that the time spent evaluating a computation is asymptotically bounded by the depth of the tree, as long as all \texttt{transform} functions take constant time and barring excessive use of zero-delay \texttt{delay}s. We allow those anyway because there are cases where they are useful, for example when we have an actual runtime $x$ and want to delay it to $y$. If we only know $x \leq y$ then having the ability to insert zero-delay \texttt{delay} for the case that $x \equiv y$ is useful. Stricter alternatives would either requiring strictly-positive delays (in the equality case, a substitution could be use), or tracking the number of delays inserted in the type and requiring the runtime bound to be greater than the inserted delays.
 
 
-This is technically sufficient for our framework. However there is a number of proofs about decision trees that turn up quite frequently and for which we can provide convenience methods:
+This is technically sufficient for our framework. However there is a number of proofs about decision trees that turn up quite frequently and for which we can provide convenience methods for ease of writing:
 
-\begin{lstlisting}[caption={Height Substitution},label={lst:dectree:height-equiv},emph={height,DecTree}]
+\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}[caption={Height substitution},label={lst:dectree:height-equiv},emph={height,DecTree}]
 height-\equiv : h \equiv h' -> DecTree C R h -> DecTree C R h'
 height-\equiv {C = C} {R = R} pf = subst (DecTree C R) pf
 \end{lstlisting}
+\end{minipage}
 
-Given a proof that two numbers are equal, and a decision tree of one height, we can substitute it's height for the other. This comes up quite often, because the transformations that Agda does by default are limited to definitional equalities and we often show more complicated equalities as proof objects.
+Given a proof that two numbers are equal and a decision tree of one height, we can substitute its height for the other. This comes up quite often because the transformations that Agda does by default are limited to definitional equalities and we often need more complicated notions of equality.
 
-\begin{lstlisting}[caption={Functor Implementation for DecTree},label={lst:dectree:functor},emph={DecTree,return,height}]
+\begin{lstlisting}[caption={Functor implementation for DecTree},label={lst:dectree:functor},emph={DecTree,return,height}]
 _<$>_ : (R' -> R) -> DecTree C R' h-> DecTree C R h
 _<$>_ {h = h} f t = height-\equiv (+-identity\^r h) $
                     t >>= λ r -> return $ f r
@@ -132,9 +153,9 @@ _<&>_ :  DecTree C R' h -> (R' -> R) -> DecTree C R h
 t <&> f = f <$> t
 \end{lstlisting}
 
-If we can transform the result of one computation into something else directly without requiring a second computation, we can do that using the functor implementation of \texttt{DecTree}.
+If we can directly transform the result of one computation into something else without requiring a second computation, we can do that using the functor implementation of \texttt{DecTree}. In line 3, the binding of a computation with duration $h$ to a return yields a computation of duration $h + 0$. As mentioned in \label{sec:tutorial:equality}, Agda cannot directly transform this into $h$, thus we substitute the height manually with the standard library's proof \texttt{+-identity$^r$} that the two are indeed equal.
 
-\begin{lstlisting}[caption={Delay Functions},label={lst:dectree:delay},emph={DecTree,delay',delay,height},add to literate={d\\leqd'}{{d\(\leq\)d'}}4]
+\begin{lstlisting}[caption={Delay functions},label={lst:dectree:delay},emph={DecTree,delay',delay,height},add to literate={d\\leqd'}{{d\(\leq\)d'}}4]
 delay' : (d : bNat) -> DecTree C R h -> DecTree C R (d + h)
 delay' {h = h} d tree = height-\equiv (+-comm h d) $ delay d tree
 
@@ -147,7 +168,6 @@ delay-\leq d\leqd' tree = case diff d\leqd' of λ (Diff n by pf) ->
 Convenience methods for inserting delays allow us to swap the delay and the height parameter as well as giving us a way to delay a computation based on some upper bound.
 
 \begin{lstlisting}[caption={Alternatives to if-then-else},label={lst:dectree:ifthenelse-alt},emph={if,then,else,by,DecTree,\_then\_else\_by\_,\[\_\]\_}]
-
 if[_]_\leq?_then_else_by_ :  (R : Idx -> Set b)
                        -> C
                        -> C
@@ -161,7 +181,7 @@ if[ R ] a \leq? b then left else right by proof =
         else subst (\lambda i -> DecTree C (R i) h) proof right
 \end{lstlisting}
 
-If the two branches return types that are not definitionally equal, but can be manually shown to be equal, then, given that proof, we can convert the second into the first.
+If the two branches return types that are not definitionally equal but can be manually shown to be equal, then given that proof, we can convert the second into the first.
 
 \begin{lstlisting}[caption={Alternatives to if-then-else},label={lst:dectree:ifthenelse-alt:2},emph={if'\_,\_then\_else\_,if,then,else,DecTree}]
 if'_\leq?_then_else_ : (a b : C)

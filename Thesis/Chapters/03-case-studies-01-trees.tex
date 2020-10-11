@@ -2,15 +2,13 @@
 % !TeX spellcheck = en_US
 
 \section{Trees}
-Trees are an interesting use case for our framework because any operation is going to trivially linear in terms of the height of the tree. Instead, what we'd like to do is frame our run time in terms of the \emph{size} of the tree.
-
-There is two ways we could approach this: We could either bound the height of the tree in terms of the size of the tree while leaving our run-time bounded in terms of the height, or we could track height and size independently and use the size to express our run time.
-
-Since our run time monad already contains a mechanism to express upper instead of strict bounds and since the intuitive way to define a tree data type would have strict bounds, we will use the second approach.
+\label{sec:trees}
+Trees are an interesting use case for our framework because any operation is going to be trivially linear in terms of the height of the tree\footnote{The traditional data structure, not our decision tree}. Instead, we will frame our run time in terms of the \emph{size} of the tree.
 
 We are going to look at basic binary search trees only. The type is defined as follows:
 
-\begin{lstlisting}[caption={The Tree Type},label={lst:tree:def},emph={Tree,Leaf,Fork}]
+\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}[caption={The Tree type},label={lst:tree:def},emph={Tree,Leaf,Fork}]
 data Tree (A : Set a) : bNat -> bNat -> Set a where
     Leaf : Tree A 0 0
     Fork :  {s\_1 s\_2 h\_1 h\_2 : bNat}
@@ -19,12 +17,13 @@ data Tree (A : Set a) : bNat -> bNat -> Set a where
          -> Tree A s\_2 h\_2
          -> Tree A (1 + s\_1 + s\_2) (1 + (h\_1 \lub h\_2))
 \end{lstlisting}
+\end{minipage}
 
-It is parameterized by the type of data it contains, and indexed by two natural numbers: The size of the tree (The number of nodes in the tree, excluding leaves for convenience) and the height of the tree (the length of the longest path from the root to a leaf).
+It is parameterized by the type of data it contains, and indexed by two natural numbers: The size of the tree (the number of nodes in the tree, excluding leaves for convenience) and the height of the tree (the length of the longest path from the root to a leaf).
 
-We will consider three basic operations of our tree: insertion, removal and test for membership. The membership test is the simplest to implement, so we will start with it.
+We will consider three basic operations of our tree: insertion, removal and test for membership. Of these the membership test is the simplest to implement, so we will start with it:
 
-\begin{lstlisting}[caption={Tree Membership Test},label={lst:tree:contains},emph={Tree,contains,Bool,Leaf,Fork,return,if,then,else}]
+\begin{lstlisting}[caption={Tree membership test},label={lst:tree:contains},emph={Tree,contains,Bool,Leaf,Fork,return,if,then,else}]
 contains : Tree A s h -> A -> DecTree A Bool (2 * s)
 contains Leaf _ = return false
 contains t@(Fork l x r) val =
@@ -40,9 +39,9 @@ contains t@(Fork l x r) val =
 
 Here we see one of the shortcomings of the current framework. Since we only have a less-or-equal test as primitive operation, to decide equality we need to spend two comparisons. This not only makes the code structure more complicated, it also makes our bound less neat -- which, due to the recursive calls, forces us to add additional proofs.
 
-A potential solution to this would be to add a primitive that can decide a case of equality, less or greater in one step. Otherwise a wrapper function similar to the alternative if-then-else implementations described in \autoref{ch:detanalysis} in combination with additional support functions for increments-of-two in the depth of a decision tree.
+A potential solution to this would be to add a primitive that can decide a case of equality, less or greater in one step. Otherwise a wrapper function similar to the alternative if-then-else implementations described in \autoref{ch:detanalysis} might be a less invasive fix. This second approach would work best in combination with additional support functions for increments-of-two in the depth of a decision tree.
 
-Next, let's look at inserting and removing elements. These operations modify the size of the tree, but may or may not affect the height. How do we express this on the type level? The simple answer would be to return a dependent sum of the new height of the tree and the tree itself. However this way we lose more information than necessary: For insertion, either tree retains its height or it grows by one. For removal, the same is true for the other direction: Either it retains its height or it decreases by one.
+Next, let us look at inserting and removing elements. These operations modify the size of the tree, but may or may not affect the height. How do we express this on the type level? The simple answer would be to return a dependent sum of the new height of the tree and the tree itself. However this way we lose more information than necessary: For insertion, either tree retains its height or it grows by one. For removal, the same is true for the other direction: Either it retains its height or it decreases by one.
 
 The data types to represent this look as follows:
 
@@ -56,11 +55,13 @@ data _\langle_\rangle-1? (A : bNat -> Set a) : (n : bNat) -> Set a where
     decrement : A n -> A \langle suc n \rangle-1?
 \end{lstlisting}
 
-We use \texttt{+0} to denote no growth and \texttt{+1} to denote growth by one step. For the decrement type, we instead use full words because names in Agda can not start with a hyphen.
+The type \texttt{\_1?+$\langle$\_$\rangle$} takes a type $A$ indexed by the natural numbers and a natural numbers $n$ and stores an element $A$ that is either indexed by $n$ (constructor \texttt{+0}) or by $n+1$ (constructor \texttt{+1}). For example, an element contained in \texttt{\_1?+$\langle$\_$\rangle$ (Vec A) n}, written as \texttt{(Vec A) 1?+$\langle$ n $\rangle$}, would either be of type \texttt{Vec A n} or \texttt{Vec A (suc n)}. In the case of insertion into trees, we will use the constructor \texttt{+0} to indicate that the height did not change and \texttt{+1} to indicate that the height increased by one.
+
+The data type \texttt{\_$\langle$\_$\rangle$-1?} works analogously. However since Agda does not permit identifiers to start with a minus symbol, we have to change the constructor names and use full words instead.
 
 With this in place we can implement our insertion function (some function bodies omitted):
 
-\begin{lstlisting}[caption={Tree Insertion},label={lst:tree:insert},emph={Tree,Fork,Leaf,insert,join,return,if,then,else}]
+\begin{lstlisting}[caption={Tree insertion},label={lst:tree:insert},emph={Tree,Fork,Leaf,insert,join,return,if,then,else}]
 join-l :  Tree A s\_1 1?+\langle h\_1 \rangle -> A -> Tree A s\_2 h\_2
        -> Tree A (1 + s\_1 + s\_2) 1?+\langle 1 + (h\_1 \lub h\_2) \rangle
 
@@ -95,7 +96,7 @@ The actual insertion function is straightforward: Depending on whether the inser
 
 The remaining item for our tree implementation is a removal function, which is not much more complicated than the insertion function. However, first we need to find an algorithm that merges two trees under the assumption that all values in one tree are smaller than all the values in the other tree. We will use this to restore a tree when we remove its root element.
 
-\begin{lstlisting}[caption={Tree Merge},label={lst:tree:merge},emph={Tree,Fork,Leaf,merge,remove,max}]
+\begin{lstlisting}[caption={Tree merge},label={lst:tree:merge},emph={Tree,Fork,Leaf,merge,remove,max}]
 remove-max : Tree A (suc s) (suc h) -> A × Tree A s 1?+\langle h \rangle
 
 merge :  Tree A s h -> Tree A s' h'
@@ -110,11 +111,11 @@ merge l@(Fork _ _ _) r with remove-max l
 
 \end{lstlisting}
 
-The \texttt{remove-max} function does what its name implies: Removing the largest value in a tree and returning it alongside the smaller tree. The merge function uses this to retrieve the largest value from the smaller tree, which is then used as the new root of the reconstructed tree. The remainder of the implementation is just reasoning about the height of the new tree.
+The \texttt{remove-max} function does what its name implies: Removing the largest value in a tree and returning it alongside the reduced tree. The merge function uses this to retrieve the largest value from the smaller tree (line 6), which is then used as the new root of the reconstructed tree. The remainder of the implementation is just reasoning about the height of the new tree.
 
 This example illustrates another shortcoming of our framework: Merging the two trees may take time \texttt{size l}, but since no comparisons of values inside the tree are necessary for it we can omit this time from the type-level bound.
 
-\begin{lstlisting}[caption={Tree Removal},label={lst:tree:removal},emph={Tree,Fork,Leaf,RemovalTree,return,if,then,else,neutral,decrement,remove}]
+\begin{lstlisting}[caption={Tree removal},label={lst:tree:removal},emph={Tree,Fork,Leaf,RemovalTree,return,if,then,else,neutral,decrement,remove}]
 RemovalTree : Set a -> bNat -> bNat -> Set a
 RemovalTree A s h = _\langle_\rangle-1? (\lambda s' -> Tree A s' \langle h \rangle-1?) s
 
@@ -150,8 +151,8 @@ where
                   -> RemovalTree A s h
 \end{lstlisting}
 
-A removal can, but does not need to, decrease both the size and the height of the tree. Since the type for this becomes cumbersome to write, we introduce the type alias \texttt{RemovalTree}.
+A removal can potentially, but does not need to, decrease both the size and the height of the tree. Since the type for this becomes cumbersome to write, we introduce the type alias \texttt{RemovalTree}.
 
 The body of \texttt{remove} is similar to \texttt{contains}: Again we check both $val \leq x$ and $x \leq val$ to determine equality. This increases our running time to $2s$ which incurs additional proof burden.
 
-The two distinct cases are finding the element in the tree or removing it from one of the sub trees. In the first case, we simply merge the two sub trees with the algorithm described earlier and then convert the result into a \texttt{RemovalTree}. In the second case we have the functions \texttt{remove-join-l} and \texttt{remove-join-r}, which take the result of the recursive call as well as the current root and the other sub tree and massage this into a \texttt{RemovalTree}..
+The two distinct cases are finding the element in the tree or removing it from one of the sub trees. In the first case, we simply merge the two sub trees with the algorithm described earlier and then convert the result into a \texttt{RemovalTree}. In the second case we have the functions \texttt{remove-join-l} and \texttt{remove-join-r}, which take the result of the recursive call as well as the current root and the other sub tree and massage this into a \texttt{RemovalTree}.

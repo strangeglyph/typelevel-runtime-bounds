@@ -2,10 +2,11 @@
 % !TeX spellcheck = en_US
 
 \section{Sorting}
+\label{sec:sorting}
 
-As in introduction, we will consider how to insert an element into an already sorted list. For reference, this is how an insert function would normally look (assuming we had a way to compare elements):
+As in the introduction, we will consider how to insert an element into an already sorted list. For reference, this is how an insert function would normally look (assuming we had a way to compare elements):
 
-\begin{lstlisting}[caption={Plain Insertion},label={lst:insert:plain},emph={insert, if, then, else}]
+\begin{lstlisting}[caption={Plain insertion},label={lst:insert:plain},emph={insert, if, then, else}]
 insert : A -> Vec A l -> Vec A (suc l)
 insert e []        = [ e ]
 insert e (x :: xs) = if e \leq x
@@ -15,13 +16,15 @@ insert e (x :: xs) = if e \leq x
 
 And this is how an insertion function looks in our framework:
 
-\begin{lstlisting}[caption={Insertion With Runtime Bound},label={lst:insert:bounded},emph={insert,if,then,else,return}]
+\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}[caption={Insertion with runtime bound},label={lst:insert:bounded},emph={insert,if,then,else,return}]
 insert : A -> Vec A l -> DecTree A (Vec A (suc l)) l
 insert e []        = return $ [ e ]
 insert e (x :: xs) = if e \leq? x
                      then (return $ e :: x :: xs)
                      else (x ::_ <$> insert e xs)
 \end{lstlisting}
+\end{minipage}
 
 As we can see, the differences are minor. Let us look at them from top to bottom:
 
@@ -34,13 +37,13 @@ As we can see, the differences are minor. Let us look at them from top to bottom
 
 Let us look at a slightly more complicated example: Merging two sorted vectors by some key function. This is a prerequisite to later implement merge sort.
 
-\begin{lstlisting}[caption={Merging Sorted Vectors},label={lst:merge},emph={merge,by,DecTree,delay,return,delay',if,then,else}]
+\begin{lstlisting}[caption={Merging sorted vectors},label={lst:merge},emph={merge,by,DecTree,delay,return,delay',if,then,else}]
 merge-by :  (X -> A)
          -> Vec X n -> Vec X m
          -> DecTree A (Vec X (n + m)) (n + m)
 
 merge-by _ []       ys = delay (len ys) $ return ys
-merge-by _ (x ∷ xs) [] = delay' (suc n) $ return $ x ∷ xs
+merge-by _ (x ∷ xs) [] = delay' (suc n) $ return $ x ∷ xs'
     where
         xs' : Vec X (n + 0)
         xs' = subst (Vec X) (sym $ +-identity\^r n) xs
@@ -65,7 +68,7 @@ Finally, the time bound for our execution is \texttt{suc (n + suc m $\sqcup$ suc
 
 With this we can turn towards implementing merge sort, again parameterized by a key function.
 
-\begin{lstlisting}[caption={Merge Sort},label={lst:mergesort},emph={DecTree,merge,sort,step,by,recurse,return,delay}]
+\begin{lstlisting}[caption={Mergesort},label={lst:mergesort},emph={DecTree,merge,sort,step,by,recurse,return,delay}]
 private
     merge-sort-step :  (X -> A)
                     -> Vec X l
@@ -96,12 +99,12 @@ merge-sort-by :  (X -> A)
 merge-sort-by f xs = merge-sort-step f xs $ <-wellFounded l
 \end{lstlisting}
 
-Here we first have to deal with the termination checker. As mentioned in the Background chapter (\autoref{sec:termination-checking}), the termination checker is limited in what it can show as terminating, and the splitting of a vector in two exceeds these limits.
+Here we first have to deal with the termination checker. As mentioned in the Background chapter (\autoref{sec:termination-checking}), the termination checker is limited in what it can show as terminating. The splitting of a vector in two exceeds these limits.
 
-In line 4, we are stating that the length of the vector in each call will be strictly decreasing. We prove this in line 13 and 15 with the call to \texttt{more} to produces instances of \texttt{Acc \_<\_ $\lceil$ l /2$\rceil$} and \texttt{Acc \_<\_ $\lfloor$ l /2$\rfloor$} respectively, which allow us to recurse.
+In line 4, we are stating that the length of the vector in each call will be strictly decreasing. We prove this in line 14 and 16 with the call to \texttt{more}, the function provided by \texttt{Acc} to produce instances of \texttt{Acc \_<\_ $\lceil$ l /2$\rceil$} and \texttt{Acc \_<\_ $\lfloor$ l /2$\rfloor$} respectively, which allow us to recurse.
 
-We use do-notation to get a nice syntax for writing our implementation. Do-notation de-sugaring in Agda works on a purely syntactic level. On the one hand, this makes it very easy to use do-notation for custom monad-like data structures - no implementation of an actual monad type is needed, just a function named \texttt{\_>>=\_} in scope. On the other hand, this purely syntactic substitution can lead to obscure errors if multiple instances of \texttt{\_>>=\_} are in scope (for example, for vectors in addition to \texttt{DecTree}) or if the type of \texttt{\_>>=\_} is subtly incorrect.
+We use do-notation to get a nice syntax for writing our implementation. Do-notation de-sugaring in Agda works on a purely syntactic level. On the one hand, this makes it very easy to use do-notation for custom monad-like data structures - no implementation of an actual monad type is needed, just a function named \texttt{\_>\/>=\_} in scope. On the other hand, this purely syntactic substitution can lead to obscure errors if multiple instances of \texttt{\_>\/>=\_} are in scope (for example, for vectors in addition to \texttt{DecTree}) or if the type of \texttt{\_>\/>=\_} is subtly incorrect.
 
 We split the vector in two in line 11 (using a let-binding, since the split function uses no comparisons and thus falls outside our framework). We then sort the two vectors (line 12, 14) and merge the results (line 17). The result of the merge operation is a vector of length $\lceil \frac l 2 \rceil + \lfloor \frac l 2 \rfloor$ and we substitute it for one of length $l$ to match our intended result type in line 16.
 
-The actual run time of our implementation is $\cldiv l * \log_2 \cldiv l + \fldiv l * \log_2 \fldiv l + \cldiv l + \fldiv l$. We bound this from above by $l * \log_2 l$ in line 10 to derive our final bound.
+The actual run time of our implementation is $\cldiv l * \log_2 \cldiv l + \fldiv l * \log_2 \fldiv l + \cldiv l + \fldiv l$. We bound this from above by $l * \log_2 l$ in line 10 to derive our final bound. The underscore as argument passed to \texttt{log$_2$n/2-bound} tells Agda to attempt and infer the correct argument by unification.
