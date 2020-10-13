@@ -1,0 +1,73 @@
+\section{Amortized Data Structures for Types with Two Indices}
+\label{sec:atime1}
+\begin{lstlisting}[caption={Amortized data structures and functions for data types with two indices},label={lst:appendix:atime1}]
+record Amortized1 {A : Set a} {I : Set i} (P : A -> I -> Set b) : Set (a Level.\lub b Level.\lub i) where
+    field
+        {i\_0} : I
+        initial : (a : A) -> P a i\_0
+        potential : {a : A} {i : I} -> P a i -> bNat
+        init\equiv0 : (a : A) -> potential (initial a) \equiv 0
+
+data Am1 {A : Set a} {I : Set i} {P : A -> I -> Set b} (am : Amortized1 P) (C : Set c)
+        : A -> Set (Level.suc (a Level.\lub i Level.\lub b Level.\lub c)) where
+    base :  {a : A}
+         -> (v : P a (Amortized1.i\_0 am))
+         -> {v \equiv Amortized1.initial am a}
+         -> Am1 am C a
+    init-comp :  {B : Set b}
+                 {time : bNat}
+                 {a : A}
+              -> DecTree C B time
+              -> (B -> Am1 am C a)
+              -> Am1 am C a
+    step :  {nextA : A -> A}
+            {nextI : {a : A} {i : I} -> P a i -> I}
+            {time  : {a : A} {i : I} -> P a i -> bNat}
+            {a : A}
+         -> Am1 am C a
+         -> ({i : I} -> (x : P a i) -> DecTree C (P (nextA a) (nextI x)) (time x))
+         -> Am1 am C (nextA a)
+
+lift1 : {P : M -> I -> Set a} {am : Amortized1 P} -> (m : M) -> Am1 am Compare m
+lift1 {am = am} m = base (Amortized1.initial am m) {refl}
+
+am1-index : {P : M -> I -> Set a} {am : Amortized1 P} {{_ : Leq Compare}} {m : M} -> Am1 am Compare m -> I
+am1-eval : {P : M -> I -> Set a} {am : Amortized1 P} {m : M} -> {{_ : Leq Compare}} -> (v : Am1 am Compare m) -> P m (am1-index v)
+
+am1-index {am = am} (base _) = Amortized1.i\_0 am
+am1-index (step {nextI = nextI} val _) = nextI (am1-eval val)
+am1-index (init-comp comp trans) = am1-index (trans $ reduce comp)
+
+am1-eval (base v) = v
+am1-eval (step val trans) = reduce $ trans $ am1-eval val
+am1-eval (init-comp comp trans) = am1-eval $ trans $ reduce comp
+
+am1-potential : {P : M -> I -> Set a} {am : Amortized1 P} {m : M} {{_ : Leq Compare}} -> Am1 am Compare m -> bNat
+am1-potential {am = am} v = Amortized1.potential am $ am1-eval v
+
+dtime-step1 : {P : M -> I -> Set a} {am : Amortized1 P} {m : M} {{_ : Leq Compare}} -> Am1 am Compare m -> bNat
+dtime-step1 (base val) = 0
+dtime-step1 (step {time = time} val trans) = time $ am1-eval val
+dtime-step1 (init-comp {_} {time} _ _) = time
+
+dtime-full1 : {P : M -> I -> Set a} {am : Amortized1 P} {m : M} {{_ : Leq Compare}} -> Am1 am Compare m -> bNat
+dtime-full1 (base val) = 0
+dtime-full1 outer@(step inner _) = dtime-full1 inner + dtime-step1 outer
+dtime-full1 (init-comp {_} {time} comp trans) = time + dtime-full1 (trans $ reduce comp)
+
+
+atime-step1 : {P : M -> I -> Set a} {am : Amortized1 P} {m : M} {{_ : Leq Compare}} -> Am1 am Compare m -> \bZ
+atime-step1 (base val) = \bZ.0\bZ
+atime-step1 (init-comp {_} {time} _ _) = + time
+atime-step1 {am = am} v@(step val transform) = dtime-step1 v \ominus pot-before \bZ.+ (+ pot-after)
+    where
+        val-before = am1-eval val
+        val-after = reduce $ transform $ val-before
+        pot-before = Amortized1.potential am val-before
+        pot-after = Amortized1.potential am val-after
+
+atime-full1 : {P : M -> I -> Set a} {am : Amortized1 P} {m : M} {{_ : Leq Compare}} -> Am1 am Compare m -> \bZ
+atime-full1 (base val) = \bZ.0\bZ
+atime-full1 v@(init-comp comp trans) = atime-step1 v \bZ.+ atime-full1 (trans $ reduce comp)
+atime-full1 v@(step val _) = atime-full1 val \bZ.+ atime-step1 v
+\end{lstlisting}

@@ -263,7 +263,7 @@ tlist-insert-in-linear-time (x :: xs) =
     open ≡-Reasoning
 \end{lstlisting}
 
-In a similar vein, we can implement the remaining operations of a binomial heap: Merging two heaps, finding the minimum element and building on top of that, removing the minimum element from the heap. We list just there function signatures and omit the bodies for brevity's sake; the proof patterns used are similar to those used in \autoref{lst:binomial:constinsert} and \autoref{lst:binomial:ins-in-linear-time}.
+In a similar vein, we can implement the remaining operations of a binomial heap: Merging two heaps, finding the minimum element and building on top of that, removing the minimum element from the heap. We list just there function signatures and omit the bodies for brevity's sake; the proof patterns used are similar to those used in \autoref{lst:binomial:constinsert} and \autoref{lst:binomial:ins-in-linear-time}. Interested readers may want to check the appendix, \autoref{sec:heap-additional} for the full code.
 
 \begin{lstlisting}[caption={Remaining heap operations},label={lst:binomial:remaining},emph={SparseTreeList,tListMergeAm,merge,in,log,time,findMin,deleteMin}]
 tListMergeAm :  (left : SparseTreeList A l acc)

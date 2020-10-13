@@ -112,7 +112,7 @@ An observant reader might notice that we use specifically indexed types. Why is 
 
 Consider the case of Agda's \texttt{Vec (A : Set) : $\mathbb N$ -> Set}. This is a \emph{family} of indexed types and \texttt{Vec A 0} and \texttt{Vec A 1} are distinct types. That means if we used simple types in our definition of \texttt{Amortized}, we would need separate instances of it for all vectors of different lengths -- including distinct minimum elements.
 
-Instead we allow for a family of indexed type with one parameter. For example, this allows us to generalize over vectors of arbitrary length for some fixed type, but not over vectors of arbitrary lengths and arbitrary types. Finding a way to be generic in the number of parameters to our family of indexed types would have been ideal, but we were not able to find such a method within the time constraints of this thesis. Allais (\cite{allais:2019:polymorphic-nary-functions}) had a promising approach that we were unable to evaluate before the deadline. Instead, as a proof of concept for this thesis, we special cased our framework to indexed families with one and with two parameters.
+Instead we allow for a family of indexed type with one parameter. For example, this allows us to generalize over vectors of arbitrary length for some fixed type, but not over vectors of arbitrary lengths and arbitrary types\footnote{We also provide a second special-cased implementation for families with two parameter, listed in detail in \autoref{sec:atime1}}. Finding a way to be generic in the number of parameters to our family of indexed types would have been ideal, but we were not able to find such a method within the time constraints of this thesis. Allais (\cite{allais:2019:polymorphic-nary-functions}) had a promising approach that we were unable to evaluate before the deadline. Instead, as a proof of concept for this thesis, we special cased our framework to indexed families with one and with two parameters.
 
 \section{Proof of Correctness}
 We can now define a measure of the amortized runtime and show that it is indeed an upper bound on the actual runtime. We first define an evaluation function for an amortized computation:
@@ -131,10 +131,12 @@ am-eval (init-comp comp trans) = am-eval (trans $ reduce comp)
 
 The potential of a computation is then simply the potential of the result of the computation:
 
+\noindent\begin{minipage}{\linewidth}
 \begin{lstlisting}[caption={Potential of a computation},label={lst:amortized:framework:pot},emph={am,potential}]
 am-potential : Am am Compare -> bNat
 am-potential {am = am} v = Amortized.potential am $ am-eval v
 \end{lstlisting}
+\end{minipage}
 
 The actual time of a computation is the sum of the worst-case guarantees of all individual steps:
 
@@ -183,7 +185,7 @@ atime-full (am-bind val trans) =
                         \bZ.+ atime-full (trans $ am-eval val)
 \end{lstlisting}
 
-All of this allows us to finally prove the central theorem of amortized runtime, that $T_{am}(O) \geq T(O) + \varphi(s_{n+1})$. The body of the proof is too long to print here and we refer the interested reader to the repository mentioned in \autoref{ch:layoftheland}.
+All of this allows us to finally prove the central theorem of amortized runtime, that $T_{am}(O) \geq T(O) + \varphi(s_{n+1})$. The body of the proof is too long to print here and we refer the interested reader to appendix, \autoref{sec:atime-proof}.
 
 \begin{lstlisting}[caption={Theorem: Amortized time is an upper bound on actual time},emph={atime,dtime,pot,full,potential}]
 atime\geqdtime :  (v : Am am Compare)

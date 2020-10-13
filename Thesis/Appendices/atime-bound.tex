@@ -1,0 +1,56 @@
+\newpage
+\section{Amortized Time Bound On Actual Time}
+\label{sec:atime-proof}
+\begin{lstlisting}[caption={Amortized time bounds actual time from above},label={lst:appendix:atime-proof}]
+atime\geqdtime : {am : Amortized A} -> {{_ : Leq Compare}} -> (v : Am am Compare) -> atime-full v \bZ.\geq + (dtime-full v + am-potential v)
+atime\geqdtime {am = am} (base v {v\equivinit}) = \bZ.+\leq+ (\leq-reflexive $ trans (cong (Amortized.potential am) v\equivinit) (Amortized.init\equiv0 am))
+atime\geqdtime v@(am-map f {map-pot-inv} val) = begin
+        + (dtime-full val + am-potential v)          \equiv\langle cong (\lambda x -> + (dtime-full val + x)) $ sym $ map-pot-inv (am-eval val)  ⟩
+        + (dtime-full val + am-potential val)        \leq\langle atime\geqdtime val \rangle
+        atime-full val                               \qed
+    where
+        open \bZ-Props.\leq-Reasoning
+atime\geqdtime v@(init-comp {_} {time} comp trans) = begin
+        + (time + dtime-full (trans $ reduce comp) + am-potential v)     \equiv\langle cong (+_) $ +-assoc time _ _ \rangle
+        + (time + (dtime-full (trans $ reduce comp) + am-potential v))   \leq\langle \bZ-Props.+-mono\^r-\leq (+ time) $ atime\geqdtime (trans $ reduce comp) \rangle
+        + time \bZ.+ atime-full (trans $ reduce comp)                      \qed
+    where
+        open \bZ-Props.\leq-Reasoning
+atime\geqdtime (am-bind val trans) = begin
+        + (dtime-full val + dtime-full (trans $ am-eval val) + am-potential (trans $ am-eval val))
+                    \equiv\langle cong (+_) $ +-assoc (dtime-full val) _ _ \rangle
+        + (dtime-full val + (dtime-full (trans $ am-eval val) + am-potential (trans $ am-eval val)))
+                    \leq\langle \bZ-Props.+-mono\^r-\leq (+ dtime-full val) $ atime\geqdtime (trans $ am-eval val) \rangle
+        + dtime-full val \bZ.+ atime-full (trans $ am-eval val)
+                    \leq\langle \bZ-Props.+-mono\^l-\leq (atime-full $ trans $ am-eval val) $ \bZ.+\leq+ $ m≤m+n (dtime-full val) (am-potential val) \rangle
+        + (dtime-full val + am-potential val) \bZ.+ atime-full (trans $ am-eval val)
+                    \leq\langle \bZ-Props.+-mono\^l-\leq _ $ atime\geqdtime val \rangle
+        atime-full val \bZ.+ atime-full (trans $ am-eval val)
+                    \qed
+    where
+        open \bZ-Props.\leq-Reasoning
+atime\geqdtime v@(step val trans) = begin
+        + (dtime-full val + dtime-step v + am-potential v)
+
+                    \equiv\langle cong (\bZ._+ (+ am-potential v)) $ sym $ +-telescope (+ dtime-full val) (+ dtime-step v) (+ am-potential val) \rangle
+
+        + (dtime-full val + am-potential val) \bZ.+ (+ dtime-step v \bZ.- + am-potential val) \bZ.+ + am-potential v
+
+                    \equiv\langle cong (\lambda x -> + (dtime-full val + am-potential val) \bZ.+ x \bZ.+ + am-potential v) $ \bZ-Props.[+m]-[+n]≡m\ominusn (dtime-step v) (am-potential val) \rangle
+
+        + (dtime-full val + am-potential val) \bZ.+ (dtime-step v \ominus am-potential val) \bZ.+ + am-potential v
+
+                    \equiv\langle \bZ-Props.+-assoc (+ (dtime-full val + am-potential val)) (dtime-step v \ominus am-potential val) (+ am-potential v) \rangle
+
+        + (dtime-full val + am-potential val) \bZ.+ (dtime-step v \ominus am-potential val \bZ.+ + am-potential v)
+
+                    ≡⟨⟩
+
+        + (dtime-full val + am-potential val) \bZ.+ atime-step v
+
+                    \leq\langle \bZ-Props.+-mono\^l-\leq _ $ atime\geqdtime val \rangle
+
+        atime-full val \bZ.+ atime-step v   \qed
+    where
+        open \bZ-Props.\leq-Reasoning
+\end{lstlisting}
