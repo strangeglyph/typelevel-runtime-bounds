@@ -1,0 +1,714 @@
+% !TeX spellcheck = en_US
+% !TeX program = lualatex
+
+\documentclass[11pt]{beamer}
+\usetheme[
+    outer/progressbar=foot
+    %outer/numbering=none
+]{metropolis}
+\input{Configuration/00-root.tex}
+
+\title{Modelling Resource Constraints in a Dependently Typed Language}
+\author{Lia Schütze}
+
+\begin{document}
+    \maketitle
+    \begin{frame}{In defense of types}
+        Types: Very useful to encode guarantees to be checked by the compiler
+
+        \begin{itemize}
+            \item[\usebeamertemplate{itemize item}] Avoid mixing of data
+            \item[\usebeamertemplate{itemize item}] Memory safety
+            \item[\usebeamertemplate{itemize item}] Programmer-specified constraints
+            \item[\usebeamertemplate{itemize item}] And more!
+        \end{itemize}
+
+        Can we use it to guarantee runtime bounds?
+    \end{frame}
+
+    \begin{frame}{In this thesis}
+        \begin{itemize}
+            \item[\usebeamertemplate{itemize item}] Deterministic worst-case bounds
+            \item[\usebeamertemplate{itemize item}] Amortized worst-case bounds
+        \end{itemize}
+    \end{frame}
+
+    \section{Deterministic Worst-Case Bounds}
+
+    \begin{frame}{Measuring runtime}
+        \begin{itemize}
+            \item[\usebeamertemplate{itemize item}] Wall-clock time % - can't be determined at compile time
+            \item[\usebeamertemplate{itemize item}] Instructions % - possible, but we are far from the metal
+            \item[\usebeamertemplate{itemize item}] User-defined measure % circumventable
+            \item[\usebeamertemplate{itemize item}] Comparisons or similar metrics
+        \end{itemize}
+    \end{frame}
+
+    \begin{frame}{Wall-clock time}
+        On input of size $x$, executes in $f(x)$ nanoseconds.
+
+        \begin{itemize}[leftmargin=3em]
+            \item[\textbf{Pro}] Most accurate measure
+            \item[\textbf{Con}] Impossible to determine at compile time
+        \end{itemize}
+    \end{frame}
+
+    \begin{frame}{Instructions}
+        On input of size $x$, executes in $f(x)$ instructions.
+
+        \begin{itemize}[leftmargin=3em]
+            \item[\textbf{Pro}] Still pretty accurate
+            \item[\textbf{Con}] Harder the further we are from the metal
+        \end{itemize}
+    \end{frame}
+
+    \begin{frame}[fragile]{User-defined measure}
+        On input of size $x$, executes $f(x)$ ``ticks"
+
+        \begin{lstlisting}[emph={Thunk,tick, return}]
+Thunk : Set -> bNat -> Set
+Thunk A n = A
+
+return : A -> Thunk A 0
+return a = a
+
+tick : A -> Thunk A 1
+tick a = a
+
+_>>=_ :  Thunk A n -> (A -> Thunk B m) -> Thunk B (n + m)
+x >>= f = f x
+        \end{lstlisting}
+    \end{frame}
+
+    \begin{frame}{User-defined measure}
+        \begin{itemize}[leftmargin=3em]
+            \item[\textbf{Pro}] Flexible
+            \item[\textbf{Con}] Relies on programmer to manage time correctly
+        \end{itemize}
+    \end{frame}
+
+    \begin{frame}{Comparisons as metric}
+        On input of size $x$, executes $f(x)$ comparisons
+
+        \begin{itemize}[leftmargin=3em]
+            \item[\textbf{Pro}] Familiar metric from algorithm analysis
+            \item[\textbf{Con}] Limited applicability
+        \end{itemize}
+    \end{frame}
+
+    \begin{frame}[fragile]
+        Hide information from programmer:
+
+        \begin{lstlisting}[emph=compare]
+compare : A -> A -> Bool
+compare x y = ?
+        \end{lstlisting}
+
+        $\Rightarrow$ Programmer can't perform comparisons without us
+    \end{frame}
+
+    \begin{frame}{The Framework}
+        Model computation as a decision tree:
+
+        \vskip 2em
+
+        \begin{center}
+            \input{Tikz/dectree.tex}
+        \end{center}
+    \end{frame}
+
+    \begin{frame}[fragile]{The Framework}
+        Model computation as a decision tree:
+
+        \begin{lstlisting}[emph={DecTree}]
+data DecTree (C : Set) (A : Set) : (d : bNat) -> Set where
+    ...
+        \end{lstlisting}
+
+        \uncover<2->{
+        Parameterized by:
+
+        \begin{itemize}
+            \item[\texttt{C}:]<2-> Comparison type
+            \item[\texttt{A}:]<3-> Return type
+            \item[\texttt{d}:]<4> Depth of the tree \quad $\cong$ \quad \#Comparisons
+        \end{itemize}
+        }
+    \end{frame}
+
+    \begin{frame}[fragile]{The Framework - Constructors}
+        \begin{lstlisting}[emph={DecTree,return}]
+data DecTree (C : Set) (A : Set) : (d : bNat) -> Set where
+    ...
+    return : A -> DecTree C A 0
+    ...
+        \end{lstlisting}
+    \end{frame}
+
+    \begin{frame}[fragile]{The Framework - Constructors}
+        \begin{lstlisting}[emph={DecTree}]
+data DecTree (C : Set) (A : Set) : (d : bNat) -> Set where
+    ...
+    _>>=_ :  DecTree C A' h\_1
+          -> (A' -> DecTree C A h\_2)
+          -> DecTree C A (h\_1 + h\_2)
+    ...
+        \end{lstlisting}
+    \end{frame}
+
+    \begin{frame}[fragile]{The Framework - Constructors}
+        \begin{lstlisting}[emph={DecTree,delay}]
+data DecTree (C : Set) (A : Set) : (d : bNat) -> Set where
+    ...
+    delay : (d : bNat) -> DecTree C A h -> DecTree C A (h + d)
+        \end{lstlisting}
+    \end{frame}
+
+    \begin{frame}[fragile]{The Framework - Constructors}
+        \begin{lstlisting}[emph={DecTree}]
+data DecTree (C : Set) (A : Set) : (d : bNat) -> Set where
+    ...
+    if_\leq?_then_else_ :  (x y : C)
+                     -> DecTree C A h\_1
+                     -> DecTree C A h\_2
+                     -> DecTree C A (suc (h\_1 \lub h\_2))
+    ...
+        \end{lstlisting}
+    \end{frame}
+
+    \begin{frame}[fragile]{A Simple Example}
+        \begin{lstlisting}[emph={min,if,then,else,return}]
+min : A -> A -> DecTree A A 1
+min x y = if x !leq y
+          then return x
+          else return y
+        \end{lstlisting}
+    \end{frame}
+
+    \begin{frame}[fragile]{Evaluating Computations}
+        \begin{lstlisting}[emph={reduce}]
+reduce :  (\leq : C -> C -> Bool)
+       -> DecTree C A h
+       -> A
+reduce _?leq_ (return val) = val
+reduce _?leq_ (comp >>= f) = reduce _?leq_ (f $ reduce _?leq_ comp)
+reduce _?leq_ (delay comp) = reduce _?leq_ comp
+reduce _?leq_ (if x !leq y then left else right) with x ?leq y
+... | true  = reduce _?leq_ left
+... | false = reduce _?leq_ right
+        \end{lstlisting}
+    \end{frame}
+
+    \begin{frame}[fragile]{In Action - Mergesort}
+        \begin{lstlisting}[emph={merge,sort,bound,split,return},showlines=true]
+merge-sort : Vec A l -> DecTree A (Vec A l) (l * \lceillog\_2 l \rceil)
+
+
+
+
+
+
+
+
+
+
+
+        \end{lstlisting}
+    \end{frame}
+
+    \begin{frame}[fragile]{In Action - Mergesort}
+        \begin{lstlisting}[emph={merge,sort,bound,split,return},showlines=true]
+merge-sort : Vec A l -> DecTree A (Vec A l) (l * \lceillog\_2 l \rceil)
+merge-sort [] = return []
+
+
+
+
+
+
+
+
+
+
+        \end{lstlisting}
+    \end{frame}
+
+    \begin{frame}[fragile]{In Action - Mergesort}
+        \begin{lstlisting}[emph={merge,sort,bound,split,return},showlines=true]
+merge-sort : Vec A l -> DecTree A (Vec A l) (l * \lceillog\_2 l \rceil)
+
+merge-sort (x :: []) = return (x :: [])
+
+
+
+
+
+
+
+
+
+        \end{lstlisting}
+    \end{frame}
+
+    \begin{frame}[fragile]{In Action - Mergesort}
+        \begin{lstlisting}[emph={merge,sort,bound,split,return},showlines=true]
+merge-sort : Vec A l -> DecTree A (Vec A l) (l * \lceillog\_2 l \rceil)
+
+
+merge-sort xs@(_ :: _ :: _) =
+                                      do
+        let (left , right) = split xs
+
+
+
+
+
+
+        \end{lstlisting}
+    \end{frame}
+
+    \begin{frame}[fragile]{In Action - Mergesort}
+        \begin{lstlisting}[emph={merge,sort,bound,split,return},showlines=true]
+merge-sort : Vec A l -> DecTree A (Vec A l) (l * \lceillog\_2 l \rceil)
+
+
+merge-sort xs@(_ :: _ :: _) =
+                                      do
+        let (left , right) = split xs
+        res-left <- merge-sort left
+        -- \lceil l /2\rceil * \lceillog\_2 \lceil l /2\rceil \rceil
+        res-right <- merge-sort right
+        -- \lfloor l /2\rfloor * \lceillog\_2 \lfloor l /2\rfloor \rceil
+
+
+        \end{lstlisting}
+    \end{frame}
+
+    \begin{frame}[fragile]{In Action - Mergesort}
+        \begin{lstlisting}[emph={merge,sort,bound,split,return},showlines=true]
+merge-sort : Vec A l -> DecTree A (Vec A l) (l * \lceillog\_2 l \rceil)
+
+
+merge-sort xs@(_ :: _ :: _) =
+                                      do
+        let (left , right) = split xs
+        res-left <- merge-sort left
+        -- \lceil l /2\rceil * \lceillog\_2 \lceil l /2\rceil \rceil
+        res-right <- merge-sort right
+        -- \lfloor l /2\rfloor * \lceillog\_2 \lfloor l /2\rfloor \rceil
+        merge res-left res-right
+        -- \lceil l /2\rceil + \lfloor l /2\rfloor
+        \end{lstlisting}
+    \end{frame}
+
+    \begin{frame}[fragile]{In Action - Mergesort}
+        \begin{lstlisting}[emph={merge,sort,bound,split,return},showlines=true]
+merge-sort : Vec A l -> DecTree A (Vec A l) (l * \lceillog\_2 l \rceil)
+
+
+merge-sort xs@(_ :: _ :: _) =
+    delay-\leq (merge-sort-bound _) $ do
+        let (left , right) = split xs
+        res-left <- merge-sort left
+        -- \lceil l /2\rceil * \lceillog\_2 \lceil l /2\rceil \rceil
+        res-right <- merge-sort right
+        -- \lfloor l /2\rfloor * \lceillog\_2 \lfloor l /2\rfloor \rceil
+        merge res-left res-right
+        -- \lceil l /2\rceil + \lfloor l /2\rfloor
+        \end{lstlisting}
+    \end{frame}
+
+    \section{Amortized Bounds}
+
+    \begin{frame}{Amortized Runtime}
+        Consider aggregate sequences of operations:
+
+        \begin{tabular}{rlr}
+          & One operation in & $\mathcal O(n)$ \\
+        + & $n-1$ operations in & $\mathcal O(1)$ \\
+        = & $n$ operations in & $\mathcal O(n)$
+        \end{tabular}
+
+        \vskip 2em
+
+        $\Rightarrow$ On average, operations take time $\mathcal O(1)$.
+    \end{frame}
+
+    \begin{frame}{Potential Method}
+        Objects $v$ have potential $\varphi(v)$ such that
+
+        \begin{itemize}
+            \item $\varphi(v) \geq 0$
+            \item $\varphi(v_0) = 0$
+        \end{itemize}
+    \end{frame}
+
+    \begin{frame}{Potential Method}
+        Operations $o$ taking object $v$ to $v'$ have amortized runtime $t_a(o) = t(o) - \varphi(v) + \varphi(v')$.
+
+        Aggregate runtime: $\sum t_a(o) = (\sum t(o)) - \varphi(v_0) + \varphi(v_n)$
+    \end{frame}
+
+    \begin{frame}[fragile]{Defining Potential in Code}
+        \begin{lstlisting}[emph={Amortized}]
+record Amortized {I : Set} (A : I -> Set) : Set where
+    field
+        {i\_0} : I
+        initial : A i\_0
+        potential : A i -> bNat
+        init\equiv0 : potential initial \equiv 0
+        \end{lstlisting}
+    \end{frame}
+
+    \begin{frame}{Amortized Computations}
+        Model an amortized computation as
+
+        \begin{itemize}
+            \item A record of the last value
+            \item A deterministic computation on that value
+        \end{itemize}
+    \end{frame}
+
+    \begin{frame}[fragile]{Amortized Computation}
+        \begin{lstlisting}[emph={Am,Amortized}]
+data Am {I : Set} {A : I -> Set}
+        (am : Amortized A)
+        (C : Set)
+          : Set where
+    ...
+        \end{lstlisting}
+    \end{frame}
+
+    \begin{frame}[fragile]{Amortized Computation - Base}
+        \begin{lstlisting}[emph={Am,base}]
+data Am ... where
+    base :  (x : A (Amortized.i\_0 am))
+         -> {x \equiv Amortized.initial am}
+         -> Am am C
+        \end{lstlisting}
+    \end{frame}
+
+    \begin{frame}[fragile]{Amortized Computation - Step}
+        \begin{lstlisting}[emph={Am,step}]
+data Am ... where
+    step :  {next : A i -> I}
+            {time : A i -> bNat}
+         -> Am am C
+         -> ((x : A i) -> DecTree C (A $ next x) (time x))
+         -> Am am C
+        \end{lstlisting}
+    \end{frame}
+
+    \begin{frame}[fragile]{Amortized Computation - Determining Runtime}
+        \begin{lstlisting}[emph={atime,step,base}]
+atime-step : {am : Amortized A} -> Am am C -> \bZ
+atime-step (base _) = 0
+atime-step (step {_} {time} val f) =
+        dtime - pot-before + pot-after
+    where
+        dtime      = time (eval val)
+        pot-before = potential (eval val)
+        pot-after  = potential (reduce $ f $ eval val)
+        \end{lstlisting}
+    \end{frame}
+
+    \begin{frame}[fragile]{Amortized Computation - Determining Runtime}
+        \begin{lstlisting}[emph={atime,full}]
+atime-full : {am : Amortized A} -> Am am C -> \bZ
+atime-full (base _) = 0
+atime-full v@(step val f) = atime-full val + atime-step v
+        \end{lstlisting}
+    \end{frame}
+
+    \begin{frame}{Binomial Heaps}
+        Data structure with amortized $\mathcal O(1)$ insertion.
+
+        Heap is collection of binomial trees.
+    \end{frame}
+
+    \begin{frame}{Binomial Trees}
+        Organized by \emph{rank}.
+
+        Rank $n$ tree has $2^n$ nodes.
+    \end{frame}
+
+    \begin{frame}{Binomial Tree}
+        Rank $0$: Single node
+
+        \vskip 2em
+
+        \begin{center}
+        \input{Tikz/binomial-tree-rank-0.tex}
+        \end{center}
+    \end{frame}
+
+    \begin{frame}{Binomial Tree}
+        Rank $1$: Node with rank $0$ child
+
+        \vskip 2em
+
+        \begin{center}
+            \input{Tikz/binomial-tree-rank-1.tex}
+        \end{center}
+    \end{frame}
+
+    \begin{frame}{Binomial Tree}
+        Rank $2$: Node with rank $1$ and rank $2$ child
+
+        \vskip 2em
+
+        \begin{center}
+            \input{Tikz/binomial-tree-rank-2.tex}
+        \end{center}
+    \end{frame}
+
+    \begin{frame}{Binomial Heaps}
+        Example: Binomial heap with $6 = 2^1 + 2^2$ entries
+
+        \begin{center}
+            \input{Tikz/binomial-heap.tex}
+        \end{center}
+    \end{frame}
+
+    \begin{frame}[fragile]{Binomial Trees - Implementation}
+        \begin{lstlisting}[emph={DescList,BinTree,base,cons,Leaf,Node}]
+data DescList (A : bNat -> Set) : bNat -> Set where
+    base : A 0 -> DescList 0
+    cons : A (suc l) -> DescList A l -> DescList A (suc l)
+
+data BinTree (A : Set) : (rank : bNat) -> Set where
+    Leaf : A -> BinTree 0
+    Node : A -> DescList (BinTree A) l -> BinTree A (suc l)
+        \end{lstlisting}
+    \end{frame}
+
+    \begin{frame}[fragile]{Binomial Heaps - Implementation}
+        \begin{lstlisting}[add to literate={{::}{{{::}}}2},emph={BinHeap,nil,empty,entry}]
+data BinHeap (A : Set) : (rnk : bNat) -> (sze : bNat) -> Set where
+    nil       : BinHeap A l 0
+    empty::   : BinHeap A (suc l) n -> BinHeap A l n
+    entry_::_ :  BinTree A l
+              -> BinHeap A (suc l) n
+              -> BinHeap A l (2 ^ l + n)
+        \end{lstlisting}
+    \end{frame}
+
+    \begin{frame}[fragile]{Amortized Computation}
+        \begin{lstlisting}[emph={BinHeap,heap,amortized}]
+heap-amortized : (A : Set) -> Amortized (BinHeap A 0)
+Amortized.i\_0        (heap-amortized A) = 0
+Amortized.initial   (heap-amortized A) = nil
+Amortized.potential (heap-amortized A) = entries
+Amortized.init\equiv0    (heap-amortized A) = refl
+        \end{lstlisting}
+    \end{frame}
+
+    \begin{frame}{Inserting into Heaps}
+        \begin{center}
+            \input{Tikz/bin-insert.tex}
+        \end{center}
+    \end{frame}
+
+    \begin{frame}{Inserting into Heaps}
+        \begin{center}
+            \input{Tikz/bin-insert-2.tex}
+        \end{center}
+    \end{frame}
+
+    \begin{frame}{Inserting into Heaps}
+        \begin{center}
+            \input{Tikz/bin-insert-3.tex}
+        \end{center}
+    \end{frame}
+
+    \begin{frame}{Inserting into Heaps}
+        \begin{center}
+            \input{Tikz/bin-insert-4.tex}
+        \end{center}
+
+        In $\mathcal O(\log n)$ in the worst case, but $\mathcal O(1)$ amortized!
+    \end{frame}
+
+    \begin{frame}[fragile]{Inserting into Heaps}
+        \begin{lstlisting}[emph={BinTree,BinHeap,entry,empty,nil}]
+insert :  BinTree A r
+       -> (h : BinHeap A r n)
+       -> DecTree A (BinHeap A r (2 ^ r + n))
+               (leadingEntries h)
+insert t nil = return $ entry t :: nil
+insert t (empty:: ts) = return $ entry t :: ts
+insert t (entry t' :: ts) = do
+    t-join <- link t t'
+    empty:: <$> insert t-join ts
+        \end{lstlisting}
+    \end{frame}
+
+    \begin{frame}[fragile]{Defining an Amortized Computation}
+        \begin{lstlisting}[emph={n,inserts}]
+n-inserts : Vec A n -> Am (heap-amortized A) A
+n-inserts [] = base nil {refl}
+n-inserts (x :: xs) = step (n-inserts xs)
+                           (\lambda ts -> insert (Leaf x) ts)
+        \end{lstlisting}
+    \end{frame}
+
+    \begin{frame}[fragile]{Showing Amortized Bounds}
+        \begin{lstlisting}[emph={insert,invariant}]
+insert-invariant :  (t : BinTree A r)
+                 -> (ts : BinHeap A r n)
+                 ->   leadingEntries ts
+                      - entries ts
+                      + entries (reduce $ insert t ts)
+                    \equiv 1
+        \end{lstlisting}
+    \end{frame}
+
+    \begin{frame}[fragile]{Showing Amortized Bounds}
+        \begin{lstlisting}[emph={insert,invariant}]
+-- 0 - 0 + 1 = 1
+insert-invariant t nil = refl
+        \end{lstlisting}
+    \end{frame}
+
+    \begin{frame}[fragile]{Showing Amortized Bounds}
+        \begin{lstlisting}[emph={insert,invariant}]
+-- 0 - a + (suc a) = 1
+insert-invariant t (empty:: ts) = 0-a+suc[a]\equiv1 (entries ts)
+        \end{lstlisting}
+    \end{frame}
+
+    \begin{frame}[fragile]{Showing Amortized Bounds}
+        \begin{lstlisting}[emph={insert,invariant}]
+insert-invariant t ts@(entry x :: ts') = begin
+    leadingEntries ts
+    - entries ts
+    + entries (reduce $ insert t ts)
+
+        \equiv\langle {- reduction -} \rangle
+
+    leadingEntries ts'
+    - entries ts'
+    + entries (reduce $ insert t ts)
+
+        \equiv\langle ... \rangle
+    ...
+        \end{lstlisting}
+    \end{frame}
+
+    \begin{frame}[fragile]{Showing Amortized Bounds}
+        \begin{lstlisting}[emph={insert,invariant}]
+insert-invariant t ts@(entry x :: ts') = begin
+    ...
+        \equiv\langle ... \rangle
+
+    leadingEntries ts'
+    - entries ts'
+    + entries (reduce $ insert t ts)
+
+        \equiv\langle {- reduction -} \rangle
+
+    leadingEntries ts'
+    - entries ts'
+    + entries (reduce $ insert (reduce $ link t x) ts')
+
+        \equiv\langle ... \rangle
+    ...
+        \end{lstlisting}
+    \end{frame}
+
+    \begin{frame}[fragile]{Showing Amortized Bounds}
+        \begin{lstlisting}[emph={insert,invariant}]
+insert-invariant t ts@(entry x :: ts') = begin
+    ...
+        \equiv\langle ... \rangle
+
+    leadingEntries ts'
+    - entries ts'
+    + entries (reduce $ insert (reduce $ link t x) ts')
+
+        \equiv\langle {- induction on (link t x), ts -} \rangle
+
+    1   \qed
+        \end{lstlisting}
+    \end{frame}
+
+    \begin{frame}[fragile]{Showing Amortized Bounds}
+        \begin{lstlisting}[emph={insert,in,linear,time}]
+insert-in-linear-time :  (xs : Vec A n)
+                      -> atime-full (n-inserts xs) \equiv n
+insert-in-linear-time [] = refl
+        \end{lstlisting}
+    \end{frame}
+
+    \begin{frame}[fragile]{Showing Amortized Bounds}
+        \begin{lstlisting}[emph={insert,in,linear,time}]
+insert-in-linear-time :  (xs : Vec A n)
+                      -> atime-full (n-inserts xs) \equiv n
+insert-in-linear-time xss@(x :: xs) = begin
+    atime-full (n-inserts xss)
+
+         \equiv\langle {- reduction -} \rangle
+
+    atime-full (n-inserts xs)
+    + (leadingEntries (am-eval $ n-inserts xs)
+       - am-potential (n-inserts xs)
+       + am-potential (n-inserts xss))
+
+        \equiv\langle ... \rangle
+    ...
+        \end{lstlisting}
+    \end{frame}
+
+    \begin{frame}[fragile]{Showing Amortized Bounds}
+        \begin{lstlisting}[emph={insert,in,linear,time}]
+insert-in-linear-time :  (xs : Vec A n)
+                      -> atime-full (n-inserts xs) \equiv n
+insert-in-linear-time xss@(x :: xs) = begin
+    ...
+        \equiv\langle ... \rangle
+
+    atime-full (n-inserts xs)
+    + (leadingEntries (am-eval $ n-inserts xs)
+       - am-potential (n-inserts xs)
+       + am-potential (n-inserts xss))
+
+        \equiv\langle {- insert invariant -} \rangle
+
+    atime-full (n-inserts xs) + 1
+
+        \equiv\langle ... \rangle
+    ...
+        \end{lstlisting}
+    \end{frame}
+
+    \begin{frame}[fragile]{Showing Amortized Bounds}
+        \begin{lstlisting}[emph={insert,in,linear,time}]
+insert-in-linear-time :  (xs : Vec A n)
+                      -> atime-full (n-inserts xs) \equiv n
+insert-in-linear-time xss@(x :: xs) = begin
+    ...
+        \equiv\langle ... \rangle
+
+    atime-full (n-inserts xs) + 1
+
+        \equiv\langle {- induction on xs -} \rangle
+
+    (n - 1) + 1
+
+        \equiv\langle\rangle
+
+    n   \qed
+        \end{lstlisting}
+    \end{frame}
+
+\section{Summary}
+    \begin{frame}{Summary}
+        \begin{itemize}
+            \item[\usebeamertemplate{itemize item}] Framework for worst-case runtime
+            \item[\usebeamertemplate{itemize item}] Framework for amortized runtime
+        \end{itemize}
+        $\Rightarrow$ Proof of concept for provably-correct runtime bounds
+    \end{frame}
+
+\section{Fin}
+\end{document}

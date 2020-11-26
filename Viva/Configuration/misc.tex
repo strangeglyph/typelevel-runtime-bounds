@@ -1,0 +1,19 @@
+%!TEX root = ../main.tex
+\graphicspath{ {./Images/} }
+\def\arraystretch{1.33}
+
+\pgfplotsset{compat=1.16}
+
+% ':' with less whitespace
+\newcommand{\oftype}{\mathbin{:}}
+% floor division
+\newcommand{\fldiv}[1]{\ensuremath{\lfloor \frac{#1}{2} \rfloor}}
+% ceiling divison
+\newcommand{\cldiv}[1]{\ensuremath{\lceil \frac{#1}{2} \rceil}}
+% absolute value
+\DeclarePairedDelimiter\abs{\lvert}{\rvert}
+
+\usetikzlibrary{shapes.misc}
+\usetikzlibrary{calc}
+\usetikzlibrary{fit}
+\usetikzlibrary{arrows}
