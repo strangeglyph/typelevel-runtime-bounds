@@ -16,7 +16,7 @@ open import Util
 private
     variable
         a c : Level
-        A B : Set a
+        A B C : Set a
         Compare : Set c
 
 
@@ -53,3 +53,27 @@ bind-elim v trans = refl
 
 apply-elim : {{_ : Leq Compare}} -> ∀ {l} -> (f : A -> B) -> (v : DecTree Compare A l) -> reduce (f <$> v) ≡ f (reduce v)
 apply-elim {l = l} f v = subst-elim (+-identityʳ l) (v >>= (λ r -> return (f r)))
+
+
+
+
+monad-law-left-identity :  {{_ : Leq Compare}}
+                        -> ∀ {l}
+                        -> (a : A)
+                        -> (f : A -> DecTree Compare B l)
+                        -> reduce (return a >>= f) ≡ reduce (f a)
+monad-law-left-identity a f = bind-elim (return a) f
+
+monad-law-right-identity :  {{_ : Leq Compare}}
+                         -> ∀ {l}
+                         -> (m : DecTree Compare A l)
+                         -> reduce (m >>= return) ≡ reduce m
+monad-law-right-identity m = refl
+
+monad-law-associativity :  {{_ : Leq Compare}}
+                        -> ∀ {l1 l2 l3}
+                        -> (m : DecTree Compare A l1)
+                        -> (f : A -> DecTree Compare B l2)
+                        -> (g : B -> DecTree Compare C l3)
+                        -> reduce (m >>= (λ a → f a >>= g)) ≡ reduce ((m >>= f) >>= g)
+monad-law-associativity m f g = refl
