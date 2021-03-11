@@ -28,11 +28,19 @@ t <&> f = f <$> t
 
 
 delay' : {h : ℕ} -> (d : ℕ) -> DecTree Compare Result h -> DecTree Compare Result (d + h)
-delay' {h = h} d tree = height-≡ (+-comm h d) $ delay d tree
+delay' zero tree = tree
+delay' (suc d) tree = delay1 $ delay' d tree
 
+delay : {h : ℕ} -> (d : ℕ) -> DecTree Compare Result h -> DecTree Compare Result (h + d)
+delay d tree = height-≡ (+-comm d _) $ delay' d tree
+
+delay-< : {d d' : ℕ} -> d < d' -> DecTree Compare Result d -> DecTree Compare Result d'
+delay-< d<d' tree = case diff d<d' of λ (Diff n by pf) -> height-≡ pf $ delay1 $ delay n tree
 
 delay-≤ : {d d' : ℕ} -> d ≤ d' -> DecTree Compare Result d -> DecTree Compare Result d'
-delay-≤ d≤d' tree = case diff d≤d' of λ (Diff n by pf) -> height-≡ pf $ delay n tree
+delay-≤ {d = d} d≤d' tree = case diff d≤d' of λ where
+                         (Diff 0 by pf)       -> height-≡ (trans (sym $ +-identityʳ d) pf) tree
+                         (Diff (suc n) by pf) -> height-≡ pf $ delay (suc n) tree
 
 
 if[_]_≤?_then_else_by_ : ∀ {l} {Idx : Set l} -> {i₁ i₂ : Idx} -> (Result : Idx -> Set b) -> {h₁ h₂ : ℕ} -> Compare -> Compare -> DecTree Compare (Result i₁) h₁ -> DecTree Compare (Result i₂) h₂ -> i₂ ≡ i₁ -> DecTree Compare (Result i₁) (1 + (h₁ ⊔ h₂))

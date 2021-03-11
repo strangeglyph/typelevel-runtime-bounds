@@ -25,8 +25,8 @@ infix 1 _>>=_
 data DecTree (Compare : Set a) (B : Set b) : (height : ℕ) -> Set (Level.suc (a Level.⊔ b)) where
     -- Leaf of the decision tree, forming the base element of the fold
     return : B -> DecTree Compare B 0
-    -- Insert an arbitrary delay into the computation. This is okay since the height of the tree is only an upper bound
-    delay : {h : ℕ} -> (d : ℕ) -> DecTree Compare B h -> DecTree Compare B (h + d)
+    -- Insert an one-step delay into the computation. This is okay since the height of the tree is only an upper bound
+    delay1 : {h : ℕ} -> DecTree Compare B h -> DecTree Compare B (suc h)
     -- Decision node - compare two values, then evaluate one of two trees
     -- Note that the runtime bounds here assume that datatype arguments are evaluated by need only to avoid unfolding the
     --   entire tree instead of only the necessary branch for evaluation. Otherwise change the subtrees to \top -> Tree
@@ -41,7 +41,7 @@ reduce :  {h : ℕ}
        -> DecTree Compare Result h
        -> Result
 reduce (return x) = x
-reduce (delay _ x) = reduce x
+reduce (delay1 x) = reduce x
 reduce (if x ≤? y then left else right) with x <= y
 ...                 | true = reduce left
 ...                 | false = reduce right
