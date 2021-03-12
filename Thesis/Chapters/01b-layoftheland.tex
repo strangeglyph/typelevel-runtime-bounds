@@ -1,0 +1,12 @@
+% !TeX root = ../main.tex
+% !TeX spellcheck = en_US
+
+\chapter{Lay of the Land}
+\label{ch:layoftheland}
+Code listings in this thesis are significantly simplified due to space constraints. The code in its entirety can be found here: \todo{add link}. Let us have a look over whats included:
+
+The modules \texttt{Nat}, \texttt{Int}, \texttt{Fin} and \texttt{Util} contain supplemental functions and theorems beyond what can be found in the Agda standard library: \texttt{Nat} for natural numbers, \texttt{Int} for integers, \texttt{Fin} for bounded natural numbers and \texttt{Util} for miscellaneous items but largely related to reasoning about equality.
+
+The framework consists of the modules \texttt{Leq}, \texttt{DecTree} and \texttt{AmortizedTime}. \texttt{Leq} contains a parameterized way to compare elements of an arbitrary type, which we will use to prevent functions from executing comparisons. \texttt{DecTree} contains the framework for deterministic worst-case runtime bounds: \texttt{DecTree.Core} contains the DecTree monad and the reduction function, \texttt{DecTree.Base} contains utility functions to transform decision trees and \texttt{DecTree.Eliminators} contains functions for piece-wise deconstruction of decision trees. Finally, \texttt{AmortizedTime} contains a framework based on the \texttt{DecTree} framework to construct amortized run-time bounds.
+
+For the deterministic single-operation worst case analysis, case studies can be found in \texttt{Tree} and \texttt{Vec} (\texttt{Vec.Sorted} for various sorting algorithms and \texttt{Vec.Median} for linear time order statistics). For the amortized analysis, \texttt{Heap.Binomial} contains our case study.

@@ -8,22 +8,53 @@
 	{Modelling Resource Constraints in a Dependently Typed Language}
 }
 
+\newcommand{\titlegerman}{Modellieren von Resourcenschranken in Sprachen mit abhängigen Typsystemen}
+
 \author{Lia Schütze}
 
 \begin{document}
-    \maketitle
+    %\maketitle
 
-    \begin{abstract}
-	   The rise of dependently typed language offers the opportunity to formally verify resource constraints such as memory usage of data structures and run-time bounds of algorithms. We investigate how to leverage the type system to encode correct-by-construction upper bounds for the run-time of different algorithms.
-	\end{abstract}
+    \input{Preamble/0000-cover.tex}
+    \input{Preamble/0003-abstract.tex}
+    \input{Preamble/0005-eid.tex}
+    \input{Preamble/0007-acknowledgements.tex}
+
+    \pagenumbering{roman}
+    \setcounter{page}{0}
 
 	\tableofcontents
 
+    \clearpage
+    \pagenumbering{arabic}
+    \setcounter{page}{1}
+
 	\input{Chapters/00-introduction.tex}
     \input{Chapters/01-background.tex}
+    %\input{Chapters/01b-layoftheland.tex}
     \input{Chapters/02-framework.tex}
     \input{Chapters/03-case-studies.tex}
-    \input{Chapters/04-conclusion.tex}
+    \input{Chapters/06-amortized.tex}
+    \input{Chapters/08-amortized-case studies.tex}
+    \input{Chapters/10-conclusion.tex}
 
 	\printbibliography
+
+    \clearpage
+    \pagenumbering{roman}
+    \setcounter{page}{0}
+    \part*{Appendices}
+
+    \appendix
+    \chapter{Extended Code Listings}
+    \lstset{
+        basicstyle=\footnotesize\ttfamily\color{solarized-default},
+        breaklines=true,
+        breakatwhitespace=true,
+        numberstyle={\footnotesize\ttfamily\color{darkgray}},
+    }
+    \label{ch:extendedcodelistings}
+    \input{Appendices/atime2.tex}
+    \input{Appendices/atime-bound.tex}
+    \input{Appendices/heap-methods.tex}
 \end{document}

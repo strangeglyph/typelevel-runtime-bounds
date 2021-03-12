@@ -39,7 +39,7 @@
     commentstyle        = {\it\ttfamily\color{solarized-comment}},
     stringstyle         = {\mdseries\ttfamily\color{solarized-cyan}},
     keywordstyle        = {\bfseries\ttfamily\color{solarized-green}},
-    basicstyle          = {\ttfamily\color{solarized-default}},
+    basicstyle          = {\footnotesize\ttfamily\color{solarized-default}},
 }
 
 \lstdefinelanguage{agda}{
@@ -98,5 +98,13 @@
                         {\\qed}{{\(\qed\)}}1
                         {\\ominus}{{\(\ominus\)}}1
                         {\\nlt}{{\(\not<\)}}1
+                        {\_>>=\_}{{{\symbolstyle \_>\/>=\_}}}5
+                        {>>=}{{{\symbolstyle >\/>=}}}3
+                        {if\_}{{{\symbolstyle if\_}}}3
+                        {\\leq?\_}{{{\symbolstyle \,\(\leq\)?\_}}}3
+                        {then\_}{{{\symbolstyle then\_}}}5
+                        {else\_}{{{\symbolstyle else\_}}}5
+                        {!leq}{{{\symbolstyle \(\leq\)?}}}2
+                        {?leq}{{{\(\leq\)}}}1
 }
 \lstset{language=agda}

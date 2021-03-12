@@ -2,9 +2,10 @@
 % !TeX spellcheck = en_US
 
 \chapter{Background}
-In programming languages, \emph{values} are typically associated with \emph{types} that describe the type of information the value stores\footnote{Though not all languages are typed. Especially early and low-level languages -- for example most assembly languages -- operate on untyped data.}. The \emph{type system} of a language determines what assignments are valid and which conversions between types are acceptable. A type system's rules are usually presented in the form of deduction rules, where an expression type checks if it is deduceable.
+\label{ch:background}
+In programming languages, \emph{values} are typically associated with \emph{types} that describe the type of information the value stores\footnote{Though not all languages are typed. Especially early and low-level languages -- for example most assembly languages -- operate on untyped data.}. The \emph{type system} of a language determines what assignments are valid and which conversions between types are acceptable. A type system's rules are usually presented in the form of deduction rules, where an expression type checks if it is deducible.
 
-An rule might for example state that assignments are only permitted if the left- and right-hand side have the same type. As a deduction rule, the rule would look like this:
+A rule for example may state that assignments are only permitted if the left- and right-hand side have the same type. As a deduction rule, the rule would look like this:
 
 \begin{prooftree}
     \AxiomC{$\tau : \star \in \Gamma$}
@@ -13,34 +14,33 @@ An rule might for example state that assignments are only permitted if the left-
     \TrinaryInfC{$\Gamma \vdash v \coloneqq w$}
 \end{prooftree}
 
-Or in normal language: The assignment $v \coloneqq w$ is valid under a context $\Gamma$ if
+\noindent Or expressed in normal language: The assignment $v \coloneqq w$ is valid under a context $\Gamma$ if
 \begin{itemize}
     \setlength\itemsep{-0.4em}
-    \item $\tau$ is a type (written $\tau : \star$) we know,
+    \item $\tau$ is a type (written $\tau : \star$) that has already been defined ($\in \Gamma$),
     \item $v$ is of type $\tau$ (written $v : \tau$) and
     \item $w$ is of type $\tau$.
 \end{itemize}
 
 A program is said to \emph{type check} if it follows all the rules of the type system. Type checking may occur statically (when the code is compiled) or dynamically (when the code is executed).
 
-Strong type systems increase the reliability of software. They inform the programmer about the type of information stored in a variable and prevent the accidental mixing of values of incompatible types, such as using a string where an integer would be expected. The type system can also control the operational semantics of a program, such as Rust's ownership model to restrict memory aliasing \cite{matsakis2014rust}. Additionally, more expressive type systems allow programmers to encode their own constraints to better match the their application logic. This includes using types to represent different measurement units \cite{units-in-r} and using affine types to model use-at-most-once semantics \cite{walker2005substructural}.
+Type systems increase the reliability of software. They inform the programmer about the type of information stored in a variable and prevent the accidental mixing of values of incompatible types, such as using a string where an integer would be expected. The type system can also control the operational semantics of a program, such as Rust's ownership model to restrict memory aliasing \cite{matsakis2014rust}. Additionally, more expressive type systems allow programmers to encode their own constraints to better match the application logic. This includes using types to represent different measurement units \cite{units-in-r} and using affine types to model use-at-most-once semantics \cite{walker2005substructural}.
 
-Well-known type systems include the family of Hindley-Milner type systems, which form the foundation for Haskell's type system \cite{haskelldesignreport}
-\todo{Expand this}
+Well-known type systems include the family of Hindley-Milner type systems, which form the foundation for Haskell's type system \cite{haskelldesignreport} and the type systems of the lambda cube \cite{barendregt:1991:lambdacube}. More familiar to most readers, though less explicitly named, are they type systems of languages such as C, C++ and Java.
 
 \section{The Curry-Howard Correspondence}
-Mathematically, a direct connection between type systems and formal logic exists. The link was discovered by Haskell Curry and William Alvin Howard over several years and first formalized in full by Howard in 1969 \cite{howard1969formulaeastypes}.
+Mathematically, a direct connection between type systems and formal logic exists. The link was discovered by Haskell Curry and William Alvin Howard over several years and first formalized in full by Howard in 1969 \cite{howard1969formulaeastypes}. To the interested reader we would heavily recommend reading Wadler's recent summary of the history of this ``propositions as types" conjecture \cite{wadler:2015:propositions}.
 
 The initial discovery made by Curry in 1934 was that the structure of proofs in propositional logic closely mirrored that of programs in typed combinatory logic (or equivalently, simply typed lambda calculus) \cite{curry1934functionality}. We get the following mapping:
 
 \begin{table}[H]
     \begin{center}
     \begin{tabular}{ll|ll}
-                    \multicolumn{2}{r|}{\textbf{Simply Typed Lambda Calculus}}  & \multicolumn{2}{l}{\textbf{Propositional Logic}} \\ \hline
+                    \multicolumn{2}{c|}{\textbf{Simply Typed Lambda Calculus}}  & \multicolumn{2}{c}{\textbf{Propositional Logic}} \\ \hline
         Type        & \texttt{A}            & Proposition   & $A$ \\
-        Variable    & \texttt{a : A}        & Axiom         & $A$ \\
+        Variable    & \texttt{a : A}        & Proof of      & $A$ \\
         Function    & \texttt{f : A -> B}   & Implication   & $A \to B$ \\
-        Application & \texttt{f a}          & Modus Ponens  & $A \to B, A \vdash B$ \\
+        Application & \texttt{f a}          & Modus Ponens  & $(A \to B, A) \vdash B$ \\
         Product     & \texttt{A × B}        & Conjunction   & $A \land B$ \\
         Sum         & \texttt{A | B}        & Disjunction   & $A \lor B$ \\
         Unit Type   & \texttt{()}           & Tautology     & \\
@@ -52,18 +52,18 @@ The initial discovery made by Curry in 1934 was that the structure of proofs in 
 \label{tab:curryhowardprop}
 \end{table}
 
-However what happens if we now consider predicate logic instead of propositional logic? Predicate logic introduces \emph{predicates} and \emph{quantifiers} for which we need to find type theoretic analogues. \todo{cite howard, de brujin}
+What happens if we consider predicate logic instead of propositional logic? Predicate logic introduces \emph{predicates} and \emph{quantifiers} for which we need to find type theoretic analogues.
 
-Predicates fill a similar role to propositions, and like propositions we are going to represent them with types. However, the truth value of predicates depends on their argument, so we cannot find a single type to represent the entire predicate. Instead, we construct a family of types indexed by the potential arguments to the predicate. In other words, if we have some predicate $p$ taking an argument of type $A$, then for each $a \oftype A$ we have a type $P(a)$ representing the truth value of the predicate for $a$. This indexed family of types is called an \emph{dependent type}.
+Predicates fill a similar role to propositions and like propositions, we are going to represent them with types. However, the truth value of predicates depends on their argument, so we cannot find a single type to represent the entire predicate. Instead, we construct a family of types indexed by the potential arguments to the predicate. In other words, if we have some predicate $p$ taking an argument of type $A$, then for each $a \oftype A$ we have a type $P(a)$ representing the truth value of the predicate for $a$. This indexed family of types is called a \emph{dependent type}.
 
-Consider now a formula of the form $\exists x \oftype A.~p(x)$. A constructive proof of this statement consists of a some element $x \oftype A$ and a constructive proof that $p(x)$ holds. Or from the type theoretic perspective: A tuple $(x , y)$ of a witness $x \oftype A$ and an element $y \oftype P(x)$ representing the proof of $p(x)$. This is called the \emph{dependent sum type} or $\Sigma$\emph{-type} and written as $\sum_{a \oftype A}P(a)$. This notations comes from the fact that the size of the type $\sum_{a \oftype A}P(a)$ is equal to $\sum_{a \oftype A} \abs{P(a)}$. Observe that for the non-dependent special case that $P(a) = P$ for all $a$, this simplifies to $\abs A * \abs B$ and is analogous to the non-dependent product type $A \times B$.
+Consider now a formula of the form $\exists (x \oftype A).~p(x)$. A constructive proof of this statement consists of a some element $x \oftype A$ and a constructive proof that $p(x)$ holds. Alternatively from the perspective of types: A tuple $(x , y)$ of a witness $x \oftype A$ and an element $y \oftype P(x)$ representing the proof of $p(x)$. This is called the \emph{dependent sum type} or $\Sigma$\emph{-type} and written as $\sum_{a \oftype A}P(a)$. This notation is based on the fact that the number of elements with type $\sum_{a \oftype A}P(a)$ is equal to $\sum_{a \oftype A} \abs{P(a)}$ (where $\abs{P(a)}$ is the number of elements of $P(a)$). Observe that for the non-dependent special case that $P(a) = P$ for all $a$, this simplifies to $\abs A * \abs P$ and is analogous to the non-dependent product type $A \times P$.
 
-Lastly we have formulas of the form $\forall x \oftype A.~p(x)$. A constructive proof of statements like this would require a constructive proof of $p(x)$ given any arbitrary $x$. In the type theoretic world we do this by giving a total function $(x \oftype A) \to P(x)$. This is called a \emph{dependent function}, the \emph{dependent product type} or $\Pi$\emph{-type} and written as $\Pi_{a \oftype A} P(a)$. This notation comes from the fact that for every $a \oftype A$ we can pick any proof object $b \oftype P(a)$ in our mapping and thus the total number of functions $(x \oftype A) \to P(x)$ is $\Pi_{a \oftype A} \abs{P(a)}$. Again, observe that for the non-dependent case this simplifies to ${\abs{P}}^{\abs{A}}$, the usual non-dependent function space.
+Lastly we have formulas of the form $\forall (x \oftype A).~p(x)$. A constructive proof of statements like this would require a constructive proof of $p(x)$ given any arbitrary $x$. In the type theoretical world we do this by giving a total function $(x \oftype A) \to P(x)$. This is called a \emph{dependent function}, the \emph{dependent product type} or $\Pi$\emph{-type} and is written as $\Pi_{a \oftype A} P(a)$. This notation comes from the fact that for every $a \oftype A$ we can pick any proof object $b \oftype P(a)$ in our mapping and thus the total number of functions $(x \oftype A) \to P(x)$ is $\Pi_{a \oftype A} \abs{P(a)}$. Again, observe that for the non-dependent case this simplifies to ${\abs{P}}^{\abs{A}}$, the size of the usual non-dependent function space.
 
-\section{Agda: Dependent Types In Practice}
+\section{Agda: Dependent Types in Practice}
 Agda is a functional, dependently typed language originally developed by Ulf Norell \cite{norell:thesis}. Its syntax is similar to Haskell, though significantly different in some spots, especially where dependent types are concerned. Here's how a simple datatype declarations looks like:
 
-\begin{lstlisting}[caption={Datatype definitions},label={lst:tutorial:datatypes},emph={zero,suc}]
+\begin{lstlisting}[caption={Definition of a type representing the natural numbers},label={lst:tutorial:datatypes},emph={zero,suc}]
 -- Inductive declaration of natural numbers
 data bNat : Set where
     zero : bNat
@@ -72,60 +72,70 @@ data bNat : Set where
 
 Compare this to the Haskell definition of the same datatype:
 
-\begin{lstlisting}[caption={Peano Numbers in Haskell},label={lst:haskell:peano},language=haskell,emph={Zero,Suc}]
+\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}[caption={Peano numbers in Haskell},label={lst:haskell:peano},language=haskell,emph={Zero,Suc}]
 data Nat = Zero | Suc Nat
 \end{lstlisting}
+\end{minipage}
+
 
 Two things stand out. For one, constructors for a datatype are written in a function signature style (\texttt{suc} takes a \texttt{$\mathbb N$} and returns a new \texttt{$\mathbb N$}). Second, the datatype itself is annotated with a type (\texttt{Set}).
 
-The latter is Agda's answer to Russel's Paradox. If a type is a set -- the collection of all members of that type -- then what is the "type" of all types? It can't be a type itself or we run into Russel's Paradox again. Instead, Agda sorts these types-of-types (and types-of-types-of-types) into a hierarchy: A value is a member of a type, a type is a member of \texttt{Set 0} -- though the 0 can be omitted --, \texttt{Set 0} is a member of \texttt{Set 1} and so on. Each of these sets is closed under the formation of (dependent) functions and pairs.
+The latter is Agda's answer to Girard's Paradox, type theory's analogue to Russel's Paradox of set theory. If datatypes are members of \texttt{Set} -- written as $A \oftype Set$, then what is \texttt{Set} a member of? Martin-Löf's type theory originally had the axiom $Set \oftype Set$. However, Girard showed that in a type system incorporating this rule, there is a term of type $\bot$ \cite{girard:1972:interpretation-fonctionelle}. In particular, this means every type must be inhabited. Under the Curry-Howard correspondence, this is equivalent to a logical system in which any statement can be proven true -- i.e. the system is inconsistent. Agda resolves this by sorting these types-of-types (and types-of-types-of-types) into a hierarchy: A value is a member of a type, a type is a member of \texttt{Set 0}\footnote{For \texttt{Set 0}, the level can be omitted, for higher sets the it needs to be stated}, \texttt{Set 0} is a member of \texttt{Set 1} and so on. The index of each set is called its level. Each of these sets is closed under the formation of (dependent) functions and pairs.
 
-The set level of a newly declared datatype is then one larger than the maximum of all its constructors, since it needs to "contain" all values formed by use of these constructors. For example:
+Data types can be \emph{parameterized} and \emph{indexed}. The two notations are largely analogous and mostly differ in that all constructors of a datatype must share the same parameter, but may use different indices. Parameters are automatically brought into scope for constructors, indices are not. Consider for example the following type of vectors, parameterized by the type of values it contains and indexed by its length:
 
-\begin{itemize}
-    \setlength\itemsep{-0.4em}
-    \item \texttt{zero : $\mathbb N$} has no arguments. Its is a value.
-    \item \texttt{suc : $\mathbb N \to \mathbb N$}  has one argument, a value. Its level is zero.
-    \item A hypothetical constructor \texttt{foo : (A : Set a) -> B} has one argument, a sort of level $a$. Its level is $a + 1$.
-\end{itemize}
-
-Datatypes can be \emph{parameterized} and \emph{indexed}. The two notations are largely analogous and only differ in that all constructors of a datatype must share the same parameter, but may use different indices. Parameters are automatically brought into scope for constructors, indices are not. Consider for example the following type of vectors, parameterized by the type of values it contains and indexed by its length:
-
-\begin{lstlisting}[caption={A Simple Vector Type},label={lst:tutorial:vec},emph={Vec,append}]
+\begin{lstlisting}[caption={A simple vector type},label={lst:tutorial:vec},emph={Vec,append}]
 data Vec (A : Set) : bNat -> Set where
     []     : Vec A zero
     append : (l : bNat) -> A -> Vec A l -> Vec A (suc l)
 \end{lstlisting}
 
-However having to explicitly pass as an argument any value that may later be used in a dependent type quickly gets cumbersome. Agda therefore has support for implicit arguments which may be omitted by the programmer when calling a function or constructor. Agda will then try to find the correct value for that parameter using unification. Rewriting our vector example:
+Having to explicitly pass any value that is later used as a argument in a dependent type as a parameter (in our example for example length of the tail of the vector in line 3) quickly gets cumbersome. Agda therefore has support for implicit arguments. These may be omitted by the programmer when calling a function or constructor. Agda will then try to find the correct value for that parameter using unification. Implicit parameters are wrapped in curly braces, both in the signature and when explicitly passing them to a function. Rewriting our vector example (compare line 3 in \autoref{lst:tutorial:vec:2} to line 3 in \autoref{lst:tutorial:vec}):
 
-\begin{lstlisting}[caption={A Simple Vector Type, Take Two},label={lst:tutorial:vec:2},emph={Vec,append}]
+\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}[caption={A simple vector type (implicit parameters)},label={lst:tutorial:vec:2},emph={Vec,append}]
 data Vec (A : Set) : bNat -> Set where
     []     : Vec A zero
     append : {l : bNat} -> A -> Vec A l -> Vec A (suc l)
 \end{lstlisting}
+\end{minipage}
 
-In fact, Agda also has support to infer the \emph{type} of a parameter, though this is largely notational sugar for writing type signatures.
+In fact, Agda also has support to infer the \emph{type} of a parameter, though this is largely notational sugar for writing type signatures. Parameters with inferred types are prefixed with $\forall$. Compare again line 3:
 
-\begin{lstlisting}[caption={A Simple Vector Type, Take Three},label={lst:tutorial:vec:3},emph={Vec,append}]
+\begin{lstlisting}[caption={A simple vector type (type inferrence)},label={lst:tutorial:vec:3},emph={Vec,append}]
 data Vec (A : Set) : bNat -> Set where
     []     : Vec A zero
     append : forall {l} -> A -> Vec A l -> Vec A (suc l)
 \end{lstlisting}
 
-Finally, mirroring Haskell's \texttt{:} operator, we'd like an infix operator for our \texttt{append} constructor.
+Finally, mirroring Haskell's \texttt{:} operator, we would like an infix operator for our \texttt{append} constructor:
 
-\begin{lstlisting}[caption={A Simple Vector Type, Take Four},label={lst:tutorial:vec:4},emph={Vec}]
+\begin{lstlisting}[caption={A simple vector type (infix operator)},label={lst:tutorial:vec:4},emph={Vec}]
 data Vec (A : Set) : bNat -> Set where
     []   : Vec A zero
     _::_ : forall {l} -> A -> Vec A l -> Vec A (suc l)
 \end{lstlisting}
 
-In this case, the underscores are placeholders and are replaced by the explicit parameters of the function at call time: \texttt{\_::\_ x xs} becomes \texttt{x :: xs}. Agda not only supports this for infix operators, but also postfix and and even mixfix operators. This means that for example \texttt{if\_then\_else\_ : $\forall$ {A} -> Bool -> A -> A -> A} is a valid function.
+In this case, the underscores in \texttt{\_::\_} are placeholders and are replaced by the explicit parameters of the function at call time: \texttt{\_::\_ x xs} can be written as \texttt{x :: xs}. Agda not only supports this for infix operators, but also postfix and and even mixfix operators. This means that for example \texttt{if\_then\_else\_ : $\forall$ {A} -> Bool -> A -> A -> A} is a valid function.
+
+Agda supports -- similar to Haskell -- record types. They are very similar to normal data types, but can contain only a single constructor. However, records contain named fields and bring these into scope as functions. For example, a record \texttt{R} containing a field \texttt{foo : $\mathbb N$} brings into scope the function \texttt{foo : R -> $\mathbb N$}. Records are declared as follows:
+
+\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}[caption={Record type declaration},label={lst:tutorial:record},emph={Rec,makeRec,foo,bar}]
+record Rec (A : Set a) : Set a where
+    constructor makeRec
+    field
+        {foo} : bNat
+        bar : Vec A foo
+\end{lstlisting}
+\end{minipage}
+
+Just like data types, records can be parameterized by values (in our example, the type \texttt{A}) and inhabit different universes (in our example, \texttt{Set a}). Field declarations are prefixed by the keyword \texttt{field} and then consist of name-type pairs (\autoref{lst:tutorial:record}, lines 3-5). The names can be wrapped into curly braces to denote implicit fields and later fields can reference earlier fields. Record values are constructed using the \texttt{record} keyword as \texttt{record \{ field$_1$ = val ; ... \}}, the intended type is inferred from context. Optionally a named constructor can be introduced using the \texttt{constructor} keyword (line 2).
 
 The usual functional aspects like pattern matching and higher order functions work as expected:
 
-\begin{lstlisting}[caption={Functions},label={lst:tutorial:functional},emph={foldr,sum}]
+\begin{lstlisting}[caption={Pattern matching and higher order functions},label={lst:tutorial:functional},emph={foldr,sum}]
 _+_ : bNat -> bNat -> bNat
 zero + n    = n
 (suc m) + n = suc (m + n)
@@ -140,56 +150,69 @@ sum = foldr (_+_) 0
 
 \subsection{Termination Checking}
 \label{sec:termination-checking}
-Agda blurs the line between compile time and run time. Since any value may be used as a dependent parameter, the type checker may need to evaluate arbitrary chunks of code at compile time. To ensure that type checking remains decidable, Agda enforces strict termination of recursive functions.
+Agda blurs the line between compile time and run time. Since any value may be used as a dependent parameter, the type checker may need to evaluate arbitrary code at compile time. To ensure that type checking remains decidable, Agda enforces strict termination of recursive functions.
 
-By default Agda checks for termination by way of structural recursion. As a first intuition, we can consider a recursive call to be permitted if it only uses a strict sub-expression of the argument in the call. If there's more than one argument to the function, recursion is submitted if strict lexicographical ordering on the size of the arguments can be found (i.e. one argument either strictly decreases or it remains equal but the remainder of the arguments is strictly decreasing).
+By default Agda checks for termination by way of structural recursion. As a first intuition, we can consider a recursive call to be permitted if it only uses strict sub-expression of the arguments in the call. If there is more than one argument to the function, recursion is submitted if strict lexicographical ordering on the size of the arguments can be found (i.e. either one argument strictly decreases or it remains equal but among the remainder of the arguments one is strictly decreasing).
 
-This recursion structure is often applicable, but there are times where it is insufficient. Consider for example the following implementation of a base 2 logarithm (setting $\log_2 0 \coloneqq 0$ for simplicity's sake):
+This recursion structure is often applicable, but there are times where it is insufficient. Consider for example the following implementation of a base 2 logarithm\footnote{Note the rounding brackets in the function name - Agda permits a wide range Unicode symbols in names} (setting $\log_2 0 \coloneqq 0$ for simplicity's sake):
 
-\begin{lstlisting}[caption={Base 2 Logarithm},label={lst:tutorial:log},emph={log}]
+\begin{lstlisting}[caption={Base 2 Logarithm (failing termination check)},label={lst:tutorial:log},emph={log}]
 \lfloorlog\_2_\rfloor : bNat -> bNat
 \lfloorlog\_2 0 \rfloor = 0
 \lfloorlog\_2 1 \rfloor = 0
-\lfloorlog\_2 n@(suc (suc _)) = \lfloorlog\_2 \lfloor n /2\rfloor \rfloor
+\lfloorlog\_2 n@(suc (suc _))\rceil = \lfloorlog\_2 \lfloor n /2\rfloor \rfloor
 \end{lstlisting}
 
-Even though this function obviously terminates, \texttt{$\lfloor$ n /2$\rfloor$} is too complex to analyze and Agda is not able to show termination.
+The compiler cannot guarantee termination as \texttt{$\lfloor$ n /2$\rfloor$} is too complex to analyze for Agda, even though termination is fairly clear to humans.
 
-The type-theoretic answer to this is well-founded recursion. This means that we can define an ordering on our parameters so that there is no infinite descending chain of parameters in our recursive calls. It follows that any call to our function necessarily terminates. However, in constructive mathematics a negated existential such as "no infinite descending chain" is not a very useful statement -- all it allows us is to derive a contradiction if we are given an infinite descending chain \cite{mietek:2020:minimal}. A more constructive way to talk about this concept is the notion of \emph{accessibility}. Elements are defined as accessible inductively according to the following rule:
+The type-theoretic answer to this is well-founded recursion. We need to define an ordering of (one of) our parameters so that no infinite descending chain exists. We then show that by this custom ordering, our parameters are strictly decreasing in our recursive calls. It follows that any call to our function necessarily terminates. However, in constructive mathematics a negated existential such as ``no infinite descending chain" is not a very useful statement -- all it allows us is to derive a contradiction if we are given an infinite descending chain \cite{mietek:2020:minimal}. A more constructive\footnote{In the mathematical sense} way to talk about this concept is the notion of \emph{accessibility}. Elements are defined as accessible inductively according to the following rule:
 
 \begin{prooftree}
     \AxiomC{$\forall y < x~:~y~\mathrm{accessible}$}
     \UnaryInfC{$x~\mathrm{accessible}$}
 \end{prooftree}
 
-We call $Acc(A, <)$ the accessible core of $A$. If $A = Acc(A, <)$, i.e. all of $A$ is accessible, we can show that $<$ is well-founded:
+We call $Acc(A, <) = \left\{ x \in A \mid x \text{ accessible} \right\}$ the accessible core of $A$. If $A = Acc(A, <)$, i.e. all of $A$ is accessible, we can show that $<$ is well-founded:
 
 \begin{lemma}
     Let $x \in A$ be accessible. Then all descending chains starting with $x$ are finite.
 \end{lemma}
 
 \begin{proof}
-    We show this by transfinite induction on the depth of the deduction tree showing that $x$ is accessible, $d$.
+    We show this by transfinite induction on the depth of the deduction tree showing that $x$ is accessible, $d$. However, let us first formalize the notion of deductive depth:
+
+    An axiom $A$ has deductive depth $0$. Let $I$ be an a (potentially infinite) set of indices. Let ${ T_i \mid i \in I }$ be deduction trees and $d_i$ the depth of tree $T_i$. Finally, let $P$ be a proposition such that:
+
+    \begin{prooftree}
+        \AxiomC{$\{ T_i \mid i \in I \}$}
+        \UnaryInfC{$P$}
+    \end{prooftree}
+
+    Then the deductive tree for $P$ has depth $\lim \left\{d_i \mid i \in I\right\} + 1$. The limit of a set the least upper bound if it is bounded from above. If the set is not bounded then the limit is the next limit ordinal larger than all elements of the set. Note that by construction the depth of a deductive tree is always a successor ordinal (potentially of some limit ordinal), not a limit ordinal by itself.
+
+    Let us now proof the statement from above.
+
+    \vskip 1em
 
     \emph{$d = 0$}: Then $x$ must not have any predecessors. There can be no non-trivial chain starting at $x$.
 
     \emph{$d = d' + 1$ for some successor ordinal $d'$ or $d' = 0$}: Then every $y < x$ must have a proof depth less than $d$. By the inductive hypothesis, all chains starting at $y$ are finite and therefore all chains $x > y > \ldots$ are finite as well.
 
-    \emph{$d = \omega + 1$ for some limit ordinal $\omega$}: No proof tree can have a depth of exactly $\omega$ \todo{show this}. Thus every $y < x$ must have a depth $\lambda_y + n_y$ for some limit ordinal $\lambda_y < \omega$ (possibly 0). Then by the inductive hypothesis all chains starting at $y$ are finite and therefore all chains $x > y > \ldots$ are finite as well.
+    \emph{$d = \omega + 1$ for some limit ordinal $\omega$}: No proof tree can have a depth of exactly $\omega$. Thus every $y < x$ must have a depth $\lambda_y + n_y$ for some limit ordinal $\lambda_y < \omega$ (possibly 0). Then by the inductive hypothesis all chains starting at $y$ are finite and therefore all chains $x > y > \ldots$ are finite as well.
 \end{proof}
 
 The accessibility relationship is formalized in Agda as follows:
 
-\begin{lstlisting}[caption={The Acc Type},label={lst:tutorial:acc},emph={Acc,acc}]
+\begin{lstlisting}[caption={The Acc type},label={lst:tutorial:acc},emph={Acc,acc}]
 data Acc (_<_ : Rel A l) (x : A) : Set (a \lub l) where
-    acc : (\forall y -> y < x -> Acc _<_ y) -> Acc _<_ x
+    acc : (forall y -> y < x -> Acc _<_ y) -> Acc _<_ x
 \end{lstlisting}
 
-In normal words, we can show an element \texttt{x} accessible under some relation \texttt{\_<\_} if we can provide a function that shows any predecessor of \texttt{x} to be accessible.
+Essentially, we can show an element \texttt{x} accessible under some relation \texttt{\_<\_} if we can provide a function that shows any predecessor of \texttt{x} to be accessible.
 
 We can leverage this type to show that our log function terminates:
 
-\begin{lstlisting}[caption={Base 2 Logarithm},label={lst:tutorial:log:2},emph={log,step},add to literate={s\\leqs}{{s\(\leq\)s}}3{z\\leqn}{{z\(\leq\)n}}3{<=>\\leq}{{<\(\Rightarrow\leq\)}}3]
+\begin{lstlisting}[caption={Base 2 Logarithm (manual proof of termination)},label={lst:tutorial:log:2},emph={log,step},add to literate={s\\leqs}{{s\(\leq\)s}}3{z\\leqn}{{z\(\leq\)n}}3{<=>\\leq}{{<\(\Rightarrow\leq\)}}3]
 n>0=>\lfloorn/2\rfloor<n : (n : bNat) -> \lfloor suc n /2\rfloor < suc n
 n>0=>\lfloorn/2\rfloor<n 0 = s\leqs z\leqn
 n>0=>\lfloorn/2\rfloor<n 1 = s\leqs (s\leqs z\leqn)
@@ -205,27 +228,43 @@ n>0=>\lfloorn/2\rfloor<n (suc (suc n)) = s\leqs (s\leqs (<=>\leq (n>0=>\lfloorn/
         (wf n (n>0=>\lfloorn/2\rfloor<n n-1))
 \end{lstlisting}
 
-In line 1-4, we are showing that $\lfloor \frac n 2 \rfloor$ is strictly smaller than $n$ for $n > 0$. This is a prerequisite for our termination proof.
 
-In line 9 we parameterize our log function by an additional parameter that formalizes the fact that we are using the well-foundedness of the natural numbers under $<$ in general and the accessibility of our parameter \texttt{n} in general to show termination.
+In line 1-4 in \autoref{lst:tutorial:log:2}, we are showing that $\lfloor \frac n 2 \rfloor$ is strictly smaller than $n$ for $n > 0$. Note that since Agda is very liberal in what characters it permits in an identifier, we can use the descriptive name \texttt{n>0=>$\lfloor$n/2$\rfloor$<n} for our function.
+
+The type \texttt{\_<\_} contains a proof that one number is less than another and is defined as \texttt{n < m = suc n $\leq$ m} while \texttt{\_$\leq$\_} is defined as:
+
+\begin{lstlisting}[caption={Definition of $\leq$},label={lst:tutorial:leq}]
+data _\leq_ : bNat -> bNat -> Set where
+    z\leqn : forall {n}            -> zero  \leq n
+    s\leqs : forall {m n} -> m \leq n -> suc m \leq suc n
+\end{lstlisting}
+
+In other words, zero is less than or equal to all other numbers (constructor \texttt{z$\leq$n}). If $m$ is less than or equal to $n$, then $m + 1$ or less than or equal to $n + 1$ (case \texttt{s$\leq$s}).
+
+Going back to \autoref{lst:tutorial:log:2}, in line 2 we need to show that \texttt{$\lfloor$ suc 0 /2$\rfloor$ < suc 0}. Simplifying by substituting the definitions of \texttt{$\lfloor$\_/2$\rfloor$}, \texttt{suc} and \texttt{\_<\_}, we get \texttt{1 $\leq$ 1}. Since the smaller argument is not zero, we start with the \texttt{s$\leq$s} constructor. This leaves us to prove \texttt{0 $\leq$ 0}, which we construct with \texttt{z$\leq$n}.
+
+Line 3 is a similar case with initial proof goal \texttt{2 $\leq$ 2}. In line 4, we are given $2 + n$ as initial parameter and we recurse on $n$. This yields \texttt{$\lfloor$ suc n /2$\rfloor$ < suc n}, but our proof goal is \texttt{suc $\lfloor$ (3 + n) /2$\rfloor$ $\leq$ 3 + n}. We convert \texttt{$\lfloor$ suc n /2$\rfloor$ < suc n} into \texttt{$\lfloor$ suc n /2$\rfloor$ $\leq$ suc n} using the lemma \texttt{<=>$\leq$} of the standard library. Applying \texttt{s$\leq$s} once yields \texttt{suc $\lfloor$ suc n /2$\rfloor$ $\leq$ 2 + n} which by the definition of \texttt{$\lfloor$\_/2$\rfloor$} is equal to \texttt{$\lfloor$ (3 + n) /2$\rfloor$ $\leq$ 2 + n}. Applying \texttt{s$\leq$s} a second time yields our proof goal \texttt{suc $\lfloor$ (3 + n) /2$\rfloor$ $\leq$ 3 + n}.
+
+In line 9 we parameterize our log function by an additional parameter that formalizes the fact that we are using the well-foundedness of the natural numbers under $<$ in general and the accessibility of our parameter \texttt{n} to show termination.
 
 In line 13 we are using the fact that $\lfloor \frac n 2 \rfloor < n$ must be accessible as well to generate the accessibility proof of it and pass that to the recursive call.
 
-Why does the termination checker permit this recursion scheme? After all, \texttt{wf n \_} is not a sub-expression of \texttt{acc wf}. However, Agda does not only consider \texttt{x} $<$ \texttt{C x} for all constructors \texttt{C}, but also \texttt{f x} $\leq$ \texttt{f} for all functions \texttt{f}. One can show this ordering on terms to be well-founded as well \cite{abel:2002:predicative-analysis-structural-recursion}, which gives justification to the termination checker.
+Why does the termination checker permit this recursion scheme? After all, \texttt{wf n \_} is not a sub-expression of \texttt{acc wf}. This is where our ``first intuition" of structural recursion fails. More fully, Agda does not only consider \texttt{x} $<$ \texttt{C x} for all constructors \texttt{C}, but also \texttt{f x} $\leq$ \texttt{f} for all functions \texttt{f}. One can show this ordering on terms to be well-founded as well \cite{abel:2002:predicative-analysis-structural-recursion}, which gives justification to the termination checker.
 
 
 \subsection{Equality}
-\todo{Intro}
+\label{sec:tutorial:equality}
+A key selling point of dependently type languages is the representation of equality of values at the type level, and the ability to reason with these equality constructs. In Agda, equality is commonly defined as follows\footnote{This is called homogeneous equality, where the two sides of the equality need to have the same type. Agda also has a definition for heterogeneous equality, where the two sides of the equality may have nominally different types, though this is less well-supported by the standard library. In the Cubical Type Theory model of Agda, all equalities are heterogeneous.}:
 
 \begin{lstlisting}[caption={Equality in Agda},label={lst:tutorial:equality},emph={refl}]
 data _\equiv_ {a} {A : Set a} (x : A) : A -> Set where
     refl : x \equiv x
 \end{lstlisting}
 
-In other words, we can only show the trivial equality. This may seem restrictive, but more complicated proofs of equality can be built from this basic block: transitivity, symmetry and congruence all become trivial the moment we pattern match on the constructor of \texttt{\_$\equiv$\_} and Agda realizes that the two sides of the equality are definitionally equal:
+In other words, we can only show a trivial equality: an element is definitionally equal to itself. This may seem restrictive, but more complicated proofs of equality can be built from this basic block: transitivity, symmetry and congruence all become trivial the moment we pattern match on the constructor of \texttt{\_$\equiv$\_} and Agda realizes that the two sides of the equality are definitionally equal:
 
 \begin{lstlisting}[caption={Reasoning in Agda},label={lst:tutorial:reasoning
-},emph={sym,cong,trans,subst}]
+},emph={sym,cong,trans}]
 sym : {x y : A} -> x \equiv y -> y \equiv x
 sym refl = refl
 
@@ -234,9 +273,26 @@ trans refl refl = refl
 
 cong : {x y : A} -> (f : A -> B) -> x \equiv y -> f x \equiv f y
 cong f refl = refl
+\end{lstlisting}
 
+We can leverage these proofs of equality, for example to convert a type indexed by some value $x$ into one indexed by some value $y$ if we have a proof that $x \equiv y$.
+
+\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}[caption={Substitution},label={lst:tutorial:subst},emph={subst}]
 subst : {x y : A} -> (P : A -> Set a) -> x \equiv y -> P x -> P y
 subst P refl p = p
 \end{lstlisting}
+\end{minipage}
 
-\todo{Concluding remarks?}
+This is relevant because definitional equality quickly reaches its limits in non-trivial expressions. Consider the signature of list concatenation, \texttt{\_++\_ : Vec A x -> Vec A y -> Vec A (x + y)}. Given a vector \texttt{xs : Vec A l}, what is the type of \texttt{xs ++ []}? Intuitively, we would expect \texttt{Vec A l} again, since we are concatenating with the empty vector. However, the function \texttt{\_+\_} is recursive in its \emph{first} argument: Where $0 + x$ would immediately reduce to $x$, $x + 0$ is opaque to Agda. Fortunately, we can help out with a manual proof:
+
+\begin{lstlisting}[caption={Leveraging equality},label={lst:tutorial:using-equality},emph={identity,subst,foo}]
++-identity : forall m -> m + 0 \equiv m
++-identity zero = refl
++-identity (suc n) = cong suc (+-identity n)
+
+foo : Vec A l -> Vec A l
+foo xs = subst (Vec A) (+-identity l) (xs ++ [])
+\end{lstlisting}
+
+First, we show that $0$ is the right identity for $+$ (\autoref{lst:tutorial:using-equality}, lines 1-3). To do so, we pattern match on the left summand: If it is zero, we need to show that $0 + 0 \equiv 0$. Due to the definition of $+$, this reduces to $0 \equiv 0$ and we can apply \texttt{refl}. In the other case -- $m$ is the successor of $n$ -- the definition of $+$ means this reduces to $suc~(n + 0) \equiv suc~n$. We can use induction on $n$ to show that $n + 0 \equiv n$ and then apply \texttt{suc} on each side to receive $suc~(n + 0) \equiv n$, our goal. In line 6 we then use this proof of identity to substitute an element of \texttt{Vec A (l + 0)} (\texttt{xs ++ []}) for one of \texttt{Vec A l}.

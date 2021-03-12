@@ -13,3 +13,7 @@ Paper Summary.txt
 *.run.xml
 *.toc
 *.out
+*.nav
+*.snm
+*.vrb
+*.tex.preview*

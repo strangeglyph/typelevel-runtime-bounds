@@ -1,0 +1,22 @@
+\begin{tikzpicture}
+\node [draw = black, minimum size = 2em] (list0) at (2em,0.5em) {};
+\node [draw = black, cross out, minimum size = 2em] at (2em,0.5em) {};
+\node [draw = black, minimum size = 2em] (list1) at (4em,0.5em) {};
+\node [draw = black, minimum size = 2em] (list2) at (6em,0.5em) {};
+
+
+\node [draw = black, shape = circle, minimum size = 2em] (v1) at (0em,-1.5) {$3$};
+\node [draw = black, shape = circle, minimum size = 2em] (v2) at (0em,-3) {$5$};
+\draw  (v1) edge (v2);
+\path [draw, -latex'] (list1.south) -- ++(0,-.75em) node(bar) {} -| (v1);
+
+
+\node [draw = black, shape = circle, minimum size = 2em] (v3) at (8em,-1.5) {$2$};
+\node [draw = black, shape = circle, minimum size = 2em] (v4) at (6em,-3) {$3$};
+\node [draw = black, shape = circle, minimum size = 2em] (v6) at (10em,-3) {$7$};
+\node [draw = black, shape = circle, minimum size = 2em] (v5) at (6em,-4.5) {$5$};
+\draw  (v3) edge (v4);
+\draw  (v4) edge (v5);
+\draw  (v3) edge (v6);
+\path [draw, -latex'] (list2.south) -- ++(0,-.75em) node(foo) {} -| (v3);
+\end{tikzpicture}

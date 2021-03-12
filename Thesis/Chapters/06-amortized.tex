@@ -1,0 +1,194 @@
+% !TeX root = ../main.tex
+% !TeX spellcheck = en_US
+
+\chapter{Amortized Analysis}
+\label{ch:amortized-analysis}
+After having talked about deterministic worst-case bounds, let us now turn towards amortized analysis. Originally introduced in 1985 by Tarjan \cite{tarjan:1985:amortizedcc}, amortized analysis considers aggregate sequences of operations (starting from some initial element). This accounts for data structures where operations are usually fast, but occasionally slow. An example that may be familiar to a lot of people is C++'s \texttt{std::vector} and Java's \texttt{ArrayList}: Initially enough space for $n$ elements is allocated on the heap. This allows for $n$ insertions in constant time. On the $(n+1)$-th operation, twice as much space is allocated and the previous $n$ elements are copied over. This take $O(n)$ time, which if averaged with the previous operations results in \emph{amortized} constant time.
+
+There are two main approaches to an amortized analysis: the banker's method and the potential method. They differ largely in how the calculate the cost for an individual operation. We will use the potential method in this thesis as it is more intuitive to implement.
+
+\section{The Potential Method}
+Intuitively, the potential method assigns to a data structure a measure of  ``potential energy". An operation should generally increase this potential method when it takes little time. Conversely, an operation that takes a long time should use this accumulated potential energy to offset its cost. In the example above, an insert operation while there is still capacity would increase the potential by one. An insertion involving reallocating the list would reduce the potential by the number of elements in the list.
+
+Let $S$ be a data structure. The potential method assigns a potential to every element $s \in S$ via a map $\varphi : S \rightarrow D$, where $D$ is some numerical domain. In this thesis, we will use $\mathbb N$ but using $\mathbb Q$ or $\mathbb R$ is equally possible. We ask two things of $\varphi$:
+
+\newpage
+\begin{itemize}
+    \item The potential is never negative, $\varphi(s) \geq 0$.
+    \item There is an ``initial" object $s_0$ from which the analysis starts (e.g. an empty list or an empty tree) and its potential is 0: $\varphi(s_0) = 0$.
+\end{itemize}
+
+Let $o_i$ be an operation that takes an object $s_i$ to an object $s_{i+1}$ and let $t(o_i)$ be the time it takes to compute $o_i$. Then the amortized time of this operation is
+
+\[t_{am}(o_i) = t(o_i) - \varphi(s_i) + \varphi(s_{i+1}).\]
+\vskip 1em
+
+In other words, the amortized time is the actual time plus the \emph{change} in potential. For a sequence of operations $O = o_0, \ldots, o_n$ the total actual runtime is
+
+\[T(O) = \sum_{i = 0}^n t(o_i)\]
+\vskip 1em
+
+and the total amortized runtime is
+
+\begin{align*}
+T_{am}(O) &= \sum_{i = 0}^n t_{am}(o_i) \\
+&= \sum_{i = 0}^n t(o_i) - \varphi(s_i) + \varphi(s_{i+1}).
+\end{align*}
+
+Since this is a telescoping sum, we can simplify it by eliminating the intermediate potentials. Rewritten, it becomes
+
+\[T_{am}(O) = \left(\sum_{i = 0}^n t(o_i)\right) - \varphi(s_0) + \varphi(s_{n+1}).\]
+\vskip 1em
+
+Since $\varphi(s_0) = 0$, this further reduces to
+
+\[T_{am}(O) = T(O) + \varphi(s_{n+1})\]
+\vskip 1em
+
+and since potentials are always positive, the amortized runtime is an upper bound on the actual runtime.
+
+\section{Ephemeral and Persistent Models of Computation}
+In addition to the banker's and the potential method, amortized analysis also distinguishes two models of computation: The ephemeral and the persistent model. In the ephemeral model, objects can be used at most once. If they are used as input to an operation, they are replaced by the result. In the persistent model, previous states of the data structure remain accessible and can be reused as input to operations.
+
+Going back to our vector example, in an ephemeral computing model, a list that has no remaining capacity can be inserted into only once. In a persistent model, the same list could be copied several times in this state, resulting in multiple high-cost operations. Clearly our analysis from above does not hold up in this case. In the PhD thesis of Okasaki \cite{okasaki:1998:purelyfunctionaldatastructures}, he has investigated the challenges of a persistent amortized analysis. For simplicity's sake, we will restrict ourselves to the ephemeral model of computation.
+
+\section{Data Structures for an Amortized Analysis}
+We introduce two datatypes: A record that defines the potential for a given type (\autoref{lst:amortized:framework:potential}) and a type to construct an amortized computation (\autoref{lst:amortized:framework:computation}).
+
+\begin{lstlisting}[caption={Record defining the potential for a type A},label={lst:amortized:framework:potential},emph={Amortized,initial,potential,init}]
+record Amortized (A : I -> Set a) : Set (a l\lub i) where
+    field
+        {i\_0} : I
+        initial : A i\_0
+        potential : {i : I} -> A i -> bNat
+        init\equiv0 : potential initial \equiv 0
+\end{lstlisting}
+
+The potential defining record contains three fields of note: The definition of the potential function itself, the initial element of the data type and a proof that the potential of the initial object is in fact zero.
+
+The datatype \texttt{Am} on the other hand provides us with several building blocks to construct an amortized computation.
+
+\begin{lstlisting}[caption={Building blocks of an amortized computation},label={lst:amortized:framework:computation},emph={Am,Amortized,base,init,comp,step,bind,map,initial,DecTree}]
+data Am (am : Amortized A) (C : Set b)
+        : Set (Level.suc (a Level.\lub i Level.\lub b)) where
+    base :  (x : A (Amortized.i\_0 am))
+         -> {x \equiv Amortized.initial am}
+         -> Am am C
+    step :  {next : A i -> I}
+            {time : A i -> bNat}
+         -> Am am C
+         -> ((x : A i) -> DecTree C (A $ next x) (time x))
+         -> Am am C
+    init-comp :  {B : Set a}
+                 {time : bNat}
+              -> DecTree C B time
+              -> (B -> Am am C)
+              -> Am am C
+    am-bind :  {J : Set i}
+               {B : J -> Set a}
+               {am' : Amortized B}
+            -> Am am' C
+            -> (B j -> Am am C)
+            -> Am am C
+    am-map :  {J : Set i}
+              {B : J -> Set a}
+              {am' : Amortized B}
+              {imap : B j -> I}
+           -> (f : (x : B j) -> A $ imap x)
+           -> {map-is-pot-invariant :
+                   (x : B j)
+                   ->   Amortized.potential am' x
+                      \equiv Amortized.potential am (f x)}
+           -> Am am' C
+           -> Am am  C
+\end{lstlisting}
+
+The simplest here is \texttt{base} (line 3), which just contains the initial element and thus forms the base of the amortized computation. It is followed by \texttt{step} (line 6) which allows us to compose computations: Given an amortized computation, and a deterministic next step, the result is again an amortized computation.
+
+Three additional constructors allow us to be more flexible in our handling of amortized computations. First, \texttt{init-comp} (line 11) allows us to follow a deterministic computation with an amortized one. Second, \texttt{am-bind} (line 16) allows us to take an amortized computation in one type and chain it into an amortized computation of a second type. Lastly, \texttt{am-map} (line 22) allows us to transform an amortized computation of one type entirely into one of another type, as long as we can prove that the potential for both is invariant under the transformation.
+
+\subsection{A Note on Indexed Types}
+An observant reader might notice that we use specifically indexed types. Why is that?
+
+Consider the case of Agda's \texttt{Vec (A : Set) : $\mathbb N$ -> Set}. This is a \emph{family} of indexed types and \texttt{Vec A 0} and \texttt{Vec A 1} are distinct types. That means if we used simple types in our definition of \texttt{Amortized}, we would need separate instances of it for all vectors of different lengths -- including distinct minimum elements.
+
+Instead we allow for a family of indexed type with one parameter. For example, this allows us to generalize over vectors of arbitrary length for some fixed type, but not over vectors of arbitrary lengths and arbitrary types\footnote{We also provide a second special-cased implementation for families with two parameter, listed in detail in \autoref{sec:atime1}}. Finding a way to be generic in the number of parameters to our family of indexed types would have been ideal, but we were not able to find such a method within the time constraints of this thesis. Allais (\cite{allais:2019:polymorphic-nary-functions}) had a promising approach that we were unable to evaluate before the deadline. Instead, as a proof of concept for this thesis, we special cased our framework to indexed families with one and with two parameters.
+
+\section{Proof of Correctness}
+We can now define a measure of the amortized runtime and show that it is indeed an upper bound on the actual runtime. We first define an evaluation function for an amortized computation:
+
+\begin{lstlisting}[caption={Evaluating amortized computations},label={lst:amortized:framework:eval},emph={am,index,eval}]
+am-index : Am am Compare -> I
+am-eval :  {{_ : Leq C}}
+        -> (v : Am am Compare)
+        -> A (am-index v)
+am-eval (base v)               = v
+am-eval (step      val  trans) = reduce $ trans $ am-eval val
+am-eval (am-map    f    val)   = f (am-eval val)
+am-eval (am-bind   val  trans) = am-eval (trans $ am-eval val)
+am-eval (init-comp comp trans) = am-eval (trans $ reduce comp)
+\end{lstlisting}
+
+The potential of a computation is then simply the potential of the result of the computation:
+
+\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}[caption={Potential of a computation},label={lst:amortized:framework:pot},emph={am,potential}]
+am-potential : Am am Compare -> bNat
+am-potential {am = am} v = Amortized.potential am $ am-eval v
+\end{lstlisting}
+\end{minipage}
+
+The actual time of a computation is the sum of the worst-case guarantees of all individual steps:
+
+\begin{lstlisting}[caption={Actual time},label={lst:amortized:framework:actualtime},emph={dtime,full}]
+dtime-full : Am am Compare -> bNat
+dtime-full (base val) = 0
+dtime-full (step {_} {time} inner _) =
+                    dtime-full inner
+                    + time $ am-eval val
+dtime-full (am-map _ val) = dtime-full val
+dtime-full (am-bind val trans) =
+                    dtime-full val
+                    + dtime-full (trans $ am-eval val)
+dtime-full (init-comp {_} {time} comp trans) =
+                    time
+                    + dtime-full (trans $ reduce comp)
+\end{lstlisting}
+
+The amortized time costs are defined as above, actual time less previous potential plus new potential for a computational step and just the deterministic time for an initial computation:
+\begin{lstlisting}[caption={Amortized time},label={lst:amortized:framework:amortizedtime},emph={dtime,atime,step,full}]
+atime-step : Am am Compare -> \bZ
+atime-step (base val) = 0\bZ
+atime-step (am-map _ _) = 0\bZ
+atime-step (am-bind _ _) = 0\bZ
+atime-step (init-comp {_} {time} _ _) = + time
+atime-step v@(step val transform) = dtime-step v
+                                    \ominus   pot-before
+                                    \bZ.+ pot-after
+    where
+        val-before = am-eval val
+        val-after = reduce $ transform $ val-before
+        pot-before = Amortized.potential am $ val-before
+        pot-after = Amortized.potential am val-after
+
+atime-full : Am am Compare -> \bZ
+atime-full (base val) = 0\bZ
+atime-full (am-map _ val) = atime-full val
+atime-full v@(step val _) =
+                        atime-full val
+                        \bZ.+ atime-step v
+atime-full v@(init-comp comp trans) =
+                        atime-step v
+                        \bZ.+ atime-full (trans $ reduce comp)
+atime-full (am-bind val trans) =
+                        atime-full val
+                        \bZ.+ atime-full (trans $ am-eval val)
+\end{lstlisting}
+
+All of this allows us to finally prove the central theorem of amortized runtime, that $T_{am}(O) \geq T(O) + \varphi(s_{n+1})$. The body of the proof is too long to print here and we refer the interested reader to appendix, \autoref{sec:atime-proof}.
+
+\begin{lstlisting}[caption={Theorem: Amortized time is an upper bound on actual time},emph={atime,dtime,pot,full,potential}]
+atime\geqdtime :  (v : Am am Compare)
+               -> atime-full v
+                  \bZ.\geq + (dtime-full v + am-potential v)
+\end{lstlisting}

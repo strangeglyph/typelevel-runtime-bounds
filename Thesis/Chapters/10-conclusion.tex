@@ -1,0 +1,17 @@
+% !TeX root = ../main.tex
+% !TeX spellcheck = en_US
+
+\chapter{Conclusion}
+In the Case Studies chapters, we have shown how to use the frameworks we have designed: examples of deterministic worst case bounds in \autoref{ch:casestudiesdeterministic} and amortized bounds in \autoref{ch:casestudyamortized}. These frameworks do carry overhead with them: During execution proof objects need to be constructed and the framework's wrapper objects need to be assembled and broken down again. Additionally, there is a non-negligible syntactic overhead due to the sheer volume of code required to proof properties in Agda. Nonetheless, as far as formal verification of runtime is concerned this is a success.
+
+There are three main avenues to continue the work presented in this thesis: Firstly, extending the framework with additional transformations and proof functions that make working with it more seamless, especially with an eye towards easing the syntactic burden. An obvious candidate for this might be a redefinition of \texttt{\_>>=\_} similar to the redefinition of \texttt{\_*\_} provided in the module \texttt{Nat.Mul}. The former introduces a trailing $0$ in the run time bound when the final statement of a do-block is a \texttt{return}, the latter introduces a trailing $0$ when the first factor of a multiplication is a constant. These trailing zeroes need to be manually eliminated with \texttt{+-identity$^r$}.
+
+The second avenue is reducing the run time overhead of the framework, for example by judicious use of proof elimination. Given the blurred line of compile- and run-time in dependently typed language, this goes hand in hand with increasing type checking responsiveness.
+
+As a third major point, eliminating the need of special-cased implementations of \texttt{Amortized} and \texttt{Am} based on the number of parameters to the type would go a long way towards making this framework more usable.
+
+Real-time and embedded systems are an obvious candidate for resource verification. However for the degree of accuracy needed for these systems we would need to descend an abstraction level from ``number of comparisons" to a more direct representation of time elapsed. An added hurdle is of course that Haskell is not usually the first choice for real-time systems. This applies by extension to Agda, as Agda compiles to Haskell. Developing a sound wall-clock framework with no or provably limited runtime overhead in a language suitable for embedded development might be the holy grail of this avenue of research.
+
+Ours is not the first approach to analyzing time bounds. Nipkow in \cite{nipkow:2017:verified-root-balanced-trees} and Danielsson in \cite{danielsson:2008:time-complexity-analysis} have implemented similar time-tracking monads as we have, with the notable difference of relying on the programmer to track time spent correctly. Nipkow has also investigated amortized analyses in \cite{nipkow:2015:amortizedverified}, also relying on programmers manually specifying the time an operation needs to complete.
+
+Time is not the only resource for which upper bounds are interesting. For example Brady and Hammond \cite{brady:2006:programsize} have tried to derive memory bounds by statically analyzing the size of data structures. Liqat et al. \cite{liqatetal:2013:energyconsumption} have investigated ways to analyze the power consumption of embedded software.

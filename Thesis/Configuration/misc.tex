@@ -5,6 +5,10 @@
 \pgfplotsset{compat=1.16}
 
 \pagestyle{fancy}
+\renewcommand{\headrulewidth}{0pt}
+\fancyhead[LE,RO]{~\\\hrulefill\\\textsl{\rightmark}}
+\fancyhead[CE,CO]{~\\\hrulefill\\~}
+\fancyhead[RE,LO]{\textsl{\leftmark}\\\vspace{-0.6em}\hrulefill\\~}
 
 \addbibresource{references.bib}
 
@@ -21,3 +25,11 @@
 
 \newcommand{\fldiv}[1]{\ensuremath{\lfloor \frac{#1}{2} \rfloor}}
 \newcommand{\cldiv}[1]{\ensuremath{\lceil \frac{#1}{2} \rceil}}
+
+\renewcommand{\thefootnote}{(\arabic{footnote})}
+\interfootnotelinepenalty=10000
+
+
+\def\chapterautorefname{Chapter}
+\def\sectionautorefname{Section}
+\def\figureautorefname{Figure}
