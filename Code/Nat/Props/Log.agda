@@ -48,11 +48,29 @@ open import Nat.Props.Div
 
 
 merge-time : ℕ -> ℕ
-merge-time n = ⌈ n /2⌉ * ⌈log₂ ⌈ n /2⌉ ⌉ + (⌊ n /2⌋ * ⌈log₂ ⌊ n /2⌋ ⌉ + (⌈ n /2⌉ + ⌊ n /2⌋))
+merge-time n = (⌈ n /2⌉ + ⌊ n /2⌋) + ⌊ n /2⌋ * ⌈log₂ ⌊ n /2⌋ ⌉ + ⌈ n /2⌉ * ⌈log₂ ⌈ n /2⌉ ⌉
 
 log₂n/2-bound : ∀ n-2 -> let n = 2 + n-2 in merge-time n ≤ n * ⌈log₂ n ⌉
 log₂n/2-bound n-2 = let n = 2 + n-2 in begin
         merge-time n
+                                       ≡⟨ cong (λ x → x + ⌊ n /2⌋ * ⌈log₂ ⌊ n /2⌋ ⌉ + ⌈ n /2⌉ * ⌈log₂ ⌈ n /2⌉ ⌉) $ ⌈n/2⌉+⌊n/2⌋≡n n ⟩
+        n + ⌊ n /2⌋ * ⌈log₂ ⌊ n /2⌋ ⌉ + ⌈ n /2⌉ * ⌈log₂ ⌈ n /2⌉ ⌉
+                                       ≤⟨ +-monoˡ-≤ (⌈ n /2⌉ * ⌈log₂ ⌈ n /2⌉ ⌉) $ +-monoʳ-≤ n $ *-monoʳ-≤ ⌊ n /2⌋ $ ⌈log₂⌉-mono $ ⌊n/2⌋-mono $ n≤1+n n ⟩
+        n + ⌊ n /2⌋ * ⌈log₂ ⌈ n /2⌉ ⌉ + ⌈ n /2⌉ * ⌈log₂ ⌈ n /2⌉ ⌉
+                                       ≡⟨ +-assoc n (⌊ n /2⌋ * ⌈log₂ ⌈ n /2⌉ ⌉) _ ⟩
+        n + (⌊ n /2⌋ * ⌈log₂ ⌈ n /2⌉ ⌉ + ⌈ n /2⌉ * ⌈log₂ ⌈ n /2⌉ ⌉)
+                                       ≡⟨ cong (n +_) $ sym $ *-distribʳ-+ ⌈log₂ ⌈ n /2⌉ ⌉ ⌊ n /2⌋ _ ⟩
+        n + ((⌊ n /2⌋ + ⌈ n /2⌉) * ⌈log₂ ⌈ n /2⌉ ⌉)
+                                       ≡⟨ cong (n +_) $ cong (_* ⌈log₂ ⌈ n /2⌉ ⌉) $ trans (+-comm ⌊ n /2⌋ ⌈ n /2⌉) (⌈n/2⌉+⌊n/2⌋≡n _) ⟩
+        n + n * ⌈log₂ ⌈ n /2⌉ ⌉
+                                       ≡⟨ sym $ *-suc n _ ⟩
+        n * suc ⌈log₂ ⌈ n /2⌉ ⌉
+                                       ≡⟨ cong (n *_) $ sym $ ⌈log₂⌉-suc n-2 ⟩
+        n * ⌈log₂ n ⌉ ∎
+
+
+
+{-
                                   ≡⟨ sym $ +-assoc (⌈ n /2⌉ * ⌈log₂ ⌈ n /2⌉ ⌉) (⌊ n /2⌋ * ⌈log₂ ⌊ n /2⌋ ⌉) (⌈ n /2⌉ + ⌊ n /2⌋) ⟩
         ⌈ n /2⌉ * ⌈log₂ ⌈ n /2⌉ ⌉ + ⌊ n /2⌋ * ⌈log₂ ⌊ n /2⌋ ⌉ + (⌈ n /2⌉ + ⌊ n /2⌋)
                                          ≡⟨ cong (⌈ n /2⌉ * ⌈log₂ ⌈ n /2⌉ ⌉ + ⌊ n /2⌋ * ⌈log₂ ⌊ n /2⌋ ⌉ +_) (⌈n/2⌉+⌊n/2⌋≡n n) ⟩
@@ -69,6 +87,7 @@ log₂n/2-bound n-2 = let n = 2 + n-2 in begin
         n * suc ⌈log₂ ⌈ n /2⌉ ⌉
                                          ≡⟨ cong (n *_) $ sym $ ⌈log₂⌉-suc n-2 ⟩
         n * ⌈log₂ n ⌉ ∎
+  -}
     where
         open ≤-Reasoning
 

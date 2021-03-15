@@ -32,7 +32,7 @@ data DecTree (Compare : Set a) (B : Set b) : (height : ℕ) -> Set (Level.suc (a
     --   entire tree instead of only the necessary branch for evaluation. Otherwise change the subtrees to \top -> Tree
     if_≤?_then_else_ : {h1 h2 : ℕ} -> (compLeft compRight : Compare) -> DecTree Compare B h1 -> DecTree Compare B h2 -> DecTree Compare B (1 + (h1 ⊔ h2))
     -- Monad transform of a decision tree
-    _>>=_ : {B' : Set b} -> {h1 h2 : ℕ} -> DecTree Compare B' h1 -> (B' -> DecTree Compare B h2) -> DecTree Compare B (h1 + h2)
+    _>>=_ : {B' : Set b} -> {h1 h2 : ℕ} -> DecTree Compare B' h1 -> (B' -> DecTree Compare B h2) -> DecTree Compare B (h2 + h1)
 
 
 -- Give a decision tree a concrete comparision function and evaluate it

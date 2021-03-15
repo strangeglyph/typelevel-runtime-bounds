@@ -21,11 +21,13 @@ height-≡ : {h h' : ℕ} -> h ≡ h' -> DecTree Compare Result h -> DecTree Com
 height-≡ {Compare = Compare} {Result = Result} pf = subst (DecTree Compare Result) pf
 
 _<$>_ : {R R' : Set b} -> {h : ℕ} -> (R' -> R) -> DecTree Compare R' h -> DecTree Compare R h
-_<$>_ {h = h} f t = height-≡ (+-identityʳ h) $ t >>= λ r -> return $ f r
+_<$>_ {h = h} f t = t >>= λ r -> return $ f r
 
 _<&>_ : {R R' : Set b} -> {h : ℕ} -> DecTree Compare R' h -> (R' -> R) -> DecTree Compare R h
 t <&> f = f <$> t
 
+_>>='_ : {R R' : Set b} -> {h1 h2 : ℕ} -> DecTree Compare R' h1 -> (R' -> DecTree Compare R h2) -> DecTree Compare R (h1 + h2)
+_>>='_ {h1 = h1} {h2 = h2} t trans = height-≡ (+-comm h2 h1) $ t >>= trans
 
 delay' : {h : ℕ} -> (d : ℕ) -> DecTree Compare Result h -> DecTree Compare Result (d + h)
 delay' zero tree = tree

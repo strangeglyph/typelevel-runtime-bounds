@@ -52,7 +52,7 @@ bind-elim v trans = refl
 
 
 apply-elim : {{_ : Leq Compare}} -> ∀ {l} -> (f : A -> B) -> (v : DecTree Compare A l) -> reduce (f <$> v) ≡ f (reduce v)
-apply-elim {l = l} f v = subst-elim (+-identityʳ l) (v >>= (λ r -> return (f r)))
+apply-elim {l = l} f v = refl
 
 
 

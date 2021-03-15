@@ -18,6 +18,7 @@ open import Induction.WellFounded using (Acc)
 open import Util
 open import DecTree
 open import Nat.Base
+open import Nat.Mul renaming (_*_ to _*'_)
 open import Nat.Props
 open import Fin.Props
 
@@ -189,15 +190,14 @@ private
     m5 ::: (medians ms overflow) = medians ((lift-m5 m5) ∷ (Data.Vec.map inc-idx-m5 ms)) (Data.Vec.map (raise-ix 5) overflow)
 
 
-    medians-of-5-by : {X A : Set a} -> {l : ℕ} -> (X -> A) -> Vec X l -> DecTree A (Medians-Of-5 X l) (2 * l)
+    medians-of-5-by : {X A : Set a} -> {l : ℕ} -> (X -> A) -> Vec X l -> DecTree A (Medians-Of-5 X l) (2 *' l)
     medians-of-5-by _ []                       = return $ medians [] []
     medians-of-5-by _ (a ∷ [])              = delay 2 $ return $ medians [] [ index f0 a ]
     medians-of-5-by _ (a ∷ b ∷ [])          = delay 4 $ return $ medians [] $ (index f0 a) ∷ [ index f1 b ]
     medians-of-5-by _ (a ∷ b ∷ c ∷ [])      = delay 6 $ return $ medians [] $ (index f0 a) ∷ (index f1 b) ∷ [ index f2 c ]
     medians-of-5-by _ (a ∷ b ∷ c ∷ d ∷ [])  = delay 8 $ return $ medians [] $ (index f0 a) ∷ (index f1 b) ∷ (index f2 c) ∷ [ index f3 d ]
     medians-of-5-by f (a ∷ b ∷ c ∷ d ∷ e ∷ xs) = let n = len xs in
-                                            height-≡ (sym $ *-distribˡ-+ 2 5 n) $
-                                            height-≡ (cong (10 +_) $ +-identityʳ (2 * n)) $ do
+                                            height-≡ (trans (+-comm (n + n) 10) (sym $ +-double-comm 5 n)) $ do
                                             m5 <- delay 3 $ median5-by f a b c d e
                                             ms <- medians-of-5-by f xs
                                             return $ m5 ::: ms
@@ -322,9 +322,8 @@ private
                                     ; bound-larger = z≤n
                                     }
     quasi-median-by {l-1 = l-1} (Acc.acc more) f xs@(_ ∷ _ ∷ _ ∷ _ ∷ _ ∷ xss) = let l = suc l-1 in
-        height-≡ (sym $ *-distribʳ-+ l 2 7) $
-        height-≡ (+-identityʳ (2 * l + 7 * l)) $
-        height-≡ (sym $ +-assoc (2 * l) (7 * l) 0 ) $
+        height-≡ (sym $ *-distribʳ-+ l 7 2) $
+        height-≡ (cong (λ x → 7 * l + x) $ sym $ *≡* 2 l) $
         do
             medians ms overflow <- medians-of-5-by f xs
             let ix = ix-half ⌊ len xss /5⌋
@@ -425,7 +424,7 @@ private
                     n ℕ-ℕ i                       ∎
 
     ordselect-lt : {X A : Set a} {ls ll lu lus lul n : ℕ} -> Acc _<_ n -> (X -> A) -> (i : Fin n) -> Indexed X n -> Vec (Indexed X n) (ls + lus) -> Vec (Indexed X n) (ll + lul) -> lus + lul ≡ lu -> 1 + ls + ll + lu ≡ n -> Data.Fin.toℕ i < ls + lus -> DecTree A (Ordselect X n i) (35 * (ls + lus))
-    ordselect-lt {ls = ls} {ll = ll} {lu = lu} {lus = lus} {lul = lul} {n = n@(suc n-1)} (Acc.acc more) f i v smaller larger lus+lul≡lu 1+ls+ll+lu≡n i<ls+lus = height-≡ (+-identityʳ _) $ do
+    ordselect-lt {ls = ls} {ll = ll} {lu = lu} {lus = lus} {lul = lul} {n = n@(suc n-1)} (Acc.acc more) f i v smaller larger lus+lul≡lu 1+ls+ll+lu≡n i<ls+lus = do
             split <- recurse
             let Diff k by i+k≡s = diff-i-s
             return (record
@@ -532,7 +531,7 @@ private
                     n-1                                             ∎
 
     ordselect-gt : {X A : Set a} {ls ll lu lus lul n : ℕ} -> Acc _<_ n -> (X -> A) -> (i : Fin n) -> Indexed X n -> Vec (Indexed X n) (ls + lus) -> Vec (Indexed X n) (ll + lul) -> lus + lul ≡ lu -> 1 + ls + ll + lu ≡ n -> ls + lus < Data.Fin.toℕ i -> DecTree A (Ordselect X n i) (35 * (ll + lul))
-    ordselect-gt {X = X} {A = A} {ls = ls} {ll = ll} {lu = lu} {lus = lus} {lul = lul} {n = n} (Acc.acc more) f i v smaller larger lus+lul≡lu 1+ls+ll+lu≡n ls+lus<i = height-≡ (+-identityʳ _) $ do
+    ordselect-gt {X = X} {A = A} {ls = ls} {ll = ll} {lu = lu} {lus = lus} {lul = lul} {n = n} (Acc.acc more) f i v smaller larger lus+lul≡lu 1+ls+ll+lu≡n ls+lus<i = do
             split <- recurse
             return (record
                         { median = Indexed.value $ Split.median split
@@ -695,7 +694,8 @@ ordselect-by {l-1 = l-1} wf-acc f i xs with ≤-total (suc l-1) 8000
 
 ... | inj₂ l>8000 =
         let iℕ = toℕ i in
-        height-≡ (sym $ *-distribʳ-+ l 9 26) $ do
+        height-≡ (sym $ *-distribʳ-+ l 26 9) $
+        height-≡ (cong (λ x → x + 9 * l) $ +-comm (25 * l) l) $ do
             split <- quasi-median-by wf-acc f xs
             let l₃≤l = ≤-trans (m≤n+m (Split.l₃ split) (1 + Split.l₁ split + Split.l₂ split)) (≤-reflexive $ Split.length-≡ split)
             unk-smaller , unk-larger by us+ul≡l₃ <- delay-≤ l₃≤l $ split-pivot-by (f ∘ Indexed.value) (Split.median split) $ Split.unknown split

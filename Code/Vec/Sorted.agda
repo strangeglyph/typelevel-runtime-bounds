@@ -62,7 +62,7 @@ quick-sort {l = l} xs = quick-sort-step xs (<-wellFounded l)
       quick-sort-step : {l : ℕ} -> Vec A l -> Acc _<_ l -> VecTree A l (l * l)
       quick-sort-step [] _ = return []
       quick-sort-step (x ∷ []) _ = delay 1 (return [ x ])
-      quick-sort-step {A = A} {l = suc l} (x ∷ xs@(y ∷ _)) (Acc.acc rs) = delay' 1 (split-pivot x xs >>= recurse)
+      quick-sort-step {A = A} {l = suc l} (x ∷ xs@(y ∷ _)) (Acc.acc rs) = delay' 1 (split-pivot x xs >>=' recurse)
         where
             recurse : SplitVec A l -> VecTree A (suc l) (l * suc l)
             recurse split@(left , right by pf) =
@@ -71,9 +71,9 @@ quick-sort {l = l} xs = quick-sort-step xs (<-wellFounded l)
                 delay' (l₁ + l₂) $
                     height-≡ (sym (binom-identity l₁ l₂)) $
                     delay (2 * l₁ * l₂) $
-                            quick-sort-step left (rs l₁ (s≤s (m≤m+n≡k pf)))
-                        >>= λ (l : Vec A l₁) -> quick-sort-step right (rs l₂ (s≤s (n≤m+n≡k pf)))
-                        <&> λ (r : Vec A l₂) -> subst (Vec A) (trans (+-suc l₁ l₂) (cong suc pf)) $ l ++ x ∷ r
+                            quick-sort-step right (rs l₂ (s≤s (n≤m+n≡k pf)))
+                        >>= λ (r : Vec A l₂) -> quick-sort-step left (rs l₁ (s≤s (m≤m+n≡k pf)))
+                        <&> λ (l : Vec A l₁) -> subst (Vec A) (trans (+-suc l₁ l₂) (cong suc pf)) $ l ++ x ∷ r
                 where
                     l₁ : ℕ
                     l₁ = SplitVec.l₁ split
@@ -84,7 +84,7 @@ quick-sort {l = l} xs = quick-sort-step xs (<-wellFounded l)
 -- Sort a vector using selection sort
 selection-sort : {n : ℕ} -> Vec A n -> VecTree A n (n * n)
 selection-sort [] = return []
-selection-sort (x ∷ xs) = delay' 1 $ take-min x xs >>= λ (e , rs) -> e ∷_ <$> recurse rs
+selection-sort (x ∷ xs) = delay' 1 $ take-min x xs >>=' λ (e , rs) -> e ∷_ <$> recurse rs
     where
         recurse : {n : ℕ} -> Vec A n -> VecTree A n (n * suc n)
         recurse {A = A} {n = n} xs = subst (VecTree A n) (sym $ *-suc n n) $ delay' n $ selection-sort xs
